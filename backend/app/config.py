@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     llm_fallback_provider: str | None = "ollama/llama3"
     openai_api_key: str | None = None
     ollama_api_base: str = "http://ollama:11434"
+    llm_timeout_seconds: float = 3.0
+    llm_temperature: float = 0.0
 
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173"

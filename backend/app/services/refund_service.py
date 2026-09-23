@@ -147,11 +147,23 @@ class RefundService:
                 preliminary_decision=rule_result.preliminary_decision,
                 ai_decision=ai_res,
                 rule_reasons=rule_result.reasons,
+                customer_risk_score=customer.risk_score,
+                customer_return_rate=customer.return_rate,
             )
             final_decision = validated_ai["decision"]
             final_confidence = validated_ai["confidence_score"]
             final_reasoning = validated_ai["explanation"]
-            llm_audit_data = validated_ai
+            llm_audit_data = {
+                "decision": validated_ai["decision"],
+                "confidence_score": validated_ai["confidence_score"],
+                "explanation": validated_ai["explanation"],
+                "policy_citations": validated_ai.get("policy_citations", []),
+                "matched_rules": validated_ai.get("matched_rules", []),
+                "audit_notes": validated_ai.get("audit_notes", ""),
+                "suggested_action": validated_ai.get("suggested_action", "process_refund"),
+                "guardrails_triggered": validated_ai.get("guardrails_triggered", []),
+                "telemetry": ai_res.get("telemetry", {}),
+            }
 
         except AIProviderError as ai_err:
             logger.info("ai_evaluation_fallback_active", reason=str(ai_err))
@@ -233,6 +245,9 @@ class RefundService:
                 "reason": final_reasoning,
                 "matched_rules": rule_result.matched_rules,
                 "triggered_red_flags": rule_result.triggered_red_flags,
+                "guardrails_triggered": llm_audit_data.get("guardrails_triggered", []),
+                "llm_provider": llm_audit_data.get("telemetry", {}).get("provider")
+                or ("fallback" if llm_audit_data.get("fallback") else "mock"),
             },
         )
 
