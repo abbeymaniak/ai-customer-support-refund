@@ -9,9 +9,13 @@ import {
   Sparkles,
   Search,
   HelpCircle,
+  RotateCcw,
+  ShieldAlert,
+  FileCheck,
 } from 'lucide-react';
 import { refundApi } from '../api/refunds';
 import type { RefundRequest as RefundRequestType } from '../types';
+import { Alert, Badge } from '../components/ui';
 
 const SAMPLE_PERSONAS = [
   { label: 'Sarah Jenkins (Low Risk, $3.2k Spent)', email: 'sarah.jenkins@example.com' },
@@ -27,7 +31,9 @@ export const RefundRequestPage: React.FC = () => {
   const [activeEmail, setActiveEmail] = useState('sarah.jenkins@example.com');
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
-  const [reasonCategory, setReasonCategory] = useState<string>('damaged_on_arrival');
+  const [itemCondition, setItemCondition] = useState<string>('unopened');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [reasonCategory, setReasonCategory] = useState<string>('defective');
   const [explanation, setExplanation] = useState<string>('');
   const [decisionResult, setDecisionResult] = useState<RefundRequestType | null>(null);
 
@@ -64,6 +70,7 @@ export const RefundRequestPage: React.FC = () => {
       setSelectedOrderId('');
       setSelectedItemId('');
       setDecisionResult(null);
+      refundMutation.reset();
     }
   };
 
@@ -73,6 +80,14 @@ export const RefundRequestPage: React.FC = () => {
     setSelectedOrderId('');
     setSelectedItemId('');
     setDecisionResult(null);
+    refundMutation.reset();
+  };
+
+  const handleResetForm = () => {
+    setDecisionResult(null);
+    setSelectedItemId('');
+    setExplanation('');
+    refundMutation.reset();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,11 +98,22 @@ export const RefundRequestPage: React.FC = () => {
       customer_email: activeEmail,
       order_number: selectedOrder.order_number,
       item_id: selectedItem.id,
-      amount: selectedItem.price,
+      amount: selectedItem.price * quantity,
       reason_category: reasonCategory,
       customer_explanation: explanation || 'Customer requested refund for item.',
+      quantity,
+      item_condition: itemCondition,
     });
   };
+
+  const policyChecks = decisionResult?.policy_checks as
+    | {
+        matched_rules?: string[];
+        triggered_red_flags?: string[];
+        reasons?: string[];
+        citations?: string[];
+      }
+    | undefined;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -97,8 +123,8 @@ export const RefundRequestPage: React.FC = () => {
           Customer Support Refund Portal
         </h1>
         <p className="text-slate-600 text-sm sm:text-base">
-          Submit and evaluate refund claims in seconds with our transparent, policy-guided AI
-          assistant.
+          Submit and evaluate refund claims in seconds with our transparent, policy guided artificial
+          intelligence assistant.
         </p>
       </div>
 
@@ -155,6 +181,14 @@ export const RefundRequestPage: React.FC = () => {
               </button>
             </form>
 
+            {customerQuery.isError && (
+              <Alert variant="error" title="Customer Lookup Error">
+                {customerQuery.error instanceof Error
+                  ? customerQuery.error.message
+                  : 'Customer account not found.'}
+              </Alert>
+            )}
+
             {customerQuery.data && (
               <div className="mt-4 p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-wrap gap-4 text-xs">
                 <div>
@@ -179,6 +213,14 @@ export const RefundRequestPage: React.FC = () => {
                     className={`text-sm ${customerQuery.data.return_rate > 0.3 ? 'text-rose-600' : 'text-emerald-600'}`}
                   >
                     {(customerQuery.data.return_rate * 100).toFixed(0)}%
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Risk Score</span>
+                  <strong
+                    className={`text-sm ${customerQuery.data.risk_score > 0.4 ? 'text-rose-600' : 'text-slate-700'}`}
+                  >
+                    {(customerQuery.data.risk_score * 100).toFixed(0)}/100
                   </strong>
                 </div>
               </div>
@@ -206,11 +248,12 @@ export const RefundRequestPage: React.FC = () => {
                   onChange={(e) => {
                     setSelectedOrderId(e.target.value);
                     setSelectedItemId('');
+                    setDecisionResult(null);
                   }}
                   required
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="">-- Choose an Order --</option>
+                  <option value="">Choose an Order</option>
                   {ordersQuery.data?.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.order_number} ({new Date(o.order_date).toLocaleDateString()}) - $
@@ -242,11 +285,21 @@ export const RefundRequestPage: React.FC = () => {
                             name="item"
                             value={item.id}
                             checked={selectedItemId === item.id}
-                            onChange={() => setSelectedItemId(item.id)}
+                            onChange={() => {
+                              setSelectedItemId(item.id);
+                              setDecisionResult(null);
+                            }}
                             className="text-indigo-600 focus:ring-indigo-500"
                           />
                           <div>
-                            <p className="text-sm font-medium text-slate-900">{item.name}</p>
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm font-medium text-slate-900">{item.name}</p>
+                              {item.is_final_sale && (
+                                <Badge status="denied" size="sm" showIcon={false}>
+                                  Final Sale
+                                </Badge>
+                              )}
+                            </div>
                             <span className="text-xs text-slate-500 capitalize">
                               Category: {item.category}
                             </span>
@@ -257,6 +310,40 @@ export const RefundRequestPage: React.FC = () => {
                         </span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Item Condition & Quantity */}
+              {selectedItem && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase">
+                      Item Condition
+                    </label>
+                    <select
+                      value={itemCondition}
+                      onChange={(e) => setItemCondition(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="unopened">Unopened (Original packaging)</option>
+                      <option value="opened_used">Opened / Used</option>
+                      <option value="damaged">Damaged / Defective on arrival</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase">
+                      Quantity to Refund
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={selectedItem.quantity || 1}
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
                   </div>
                 </div>
               )}
@@ -273,14 +360,14 @@ export const RefundRequestPage: React.FC = () => {
                       onChange={(e) => setReasonCategory(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="damaged_on_arrival">Item arrived damaged or broken</option>
                       <option value="defective">
-                        Item defective / does not function as advertised
+                        Item defective or does not function as advertised
                       </option>
+                      <option value="damaged_on_arrival">Item arrived damaged or broken</option>
                       <option value="wrong_item_sent">Wrong item sent by merchant</option>
-                      <option value="unwanted">Changed mind / No longer needed</option>
-                      <option value="late_delivery">Arrived significantly late</option>
-                      <option value="not_as_described">Significantly not as described</option>
+                      <option value="unwanted">Changed mind or no longer needed</option>
+                      <option value="bought_by_mistake">Ordered by mistake</option>
+                      <option value="item_not_received">Item not received</option>
                     </select>
                   </div>
 
@@ -297,6 +384,14 @@ export const RefundRequestPage: React.FC = () => {
                     />
                   </div>
 
+                  {refundMutation.isError && (
+                    <Alert variant="error" title="Submission Error">
+                      {refundMutation.error instanceof Error
+                        ? refundMutation.error.message
+                        : 'Could not process refund request.'}
+                    </Alert>
+                  )}
+
                   <button
                     type="submit"
                     disabled={refundMutation.isPending}
@@ -305,11 +400,11 @@ export const RefundRequestPage: React.FC = () => {
                     {refundMutation.isPending ? (
                       <>
                         <Sparkles className="w-5 h-5 animate-spin" />
-                        <span>AI Reasoning Engine Evaluating...</span>
+                        <span>Policy & AI Engine Evaluating...</span>
                       </>
                     ) : (
                       <>
-                        <span>Submit Refund Claim</span>
+                        <span>Submit Refund Claim (${(selectedItem.price * quantity).toFixed(2)})</span>
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}
@@ -323,14 +418,26 @@ export const RefundRequestPage: React.FC = () => {
         {/* Right Column: AI Decision Outcome */}
         <div className="lg:col-span-5">
           <div className="sticky top-24 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-indigo-600" />
-                <span>AI Decision Engine Verdict</span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Real-time policy validation and multi-factor risk determination.
-              </p>
+            <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <span>AI Decision Engine Verdict</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Real time policy validation and multi factor risk determination.
+                </p>
+              </div>
+              {decisionResult && (
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                  title="Submit Another Claim"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {decisionResult ? (
@@ -358,15 +465,23 @@ export const RefundRequestPage: React.FC = () => {
                   <span className="text-2xl font-black uppercase tracking-wide">
                     {decisionResult.decision}
                   </span>
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/80 border">
-                    Confidence: {((decisionResult.confidence_score || 0.95) * 100).toFixed(0)}%
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/80 border">
+                      Confidence: {((decisionResult.confidence_score || 0.95) * 100).toFixed(0)}%
+                    </span>
+                    {decisionResult.request_number && (
+                      <span className="text-xs font-mono px-2 py-1 rounded-md bg-white/60 border text-slate-700">
+                        {decisionResult.request_number}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* AI Reasoning Narrative */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    AI Reasoning Summary
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                    <FileCheck className="w-4 h-4 text-indigo-600" />
+                    <span>Decision Reasoning</span>
                   </h4>
                   <p className="text-sm text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-slate-200 leading-relaxed">
                     {decisionResult.decision_reason ||
@@ -374,37 +489,54 @@ export const RefundRequestPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Policy Checks Checklist */}
-                {decisionResult.policy_checks && (
+                {/* Matched Rules and Policy Citations */}
+                {policyChecks?.matched_rules && policyChecks.matched_rules.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Policy Checks
+                      Policy Rules Applied
                     </h4>
-                    <div className="space-y-1.5 text-xs">
-                      {Object.entries(decisionResult.policy_checks).map(
-                        ([key, val]: [string, unknown]) => (
-                          <div
-                            key={key}
-                            className="flex items-center justify-between p-2 rounded-lg bg-slate-50"
-                          >
-                            <span className="text-slate-600 capitalize">
-                              {key.replace(/_/g, ' ')}
-                            </span>
-                            <span
-                              className={
-                                val
-                                  ? 'text-emerald-600 font-semibold'
-                                  : 'text-rose-600 font-semibold'
-                              }
-                            >
-                              {val ? 'Passed' : 'Failed'}
-                            </span>
-                          </div>
-                        )
-                      )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {policyChecks.matched_rules.map((rule) => (
+                        <Badge key={rule} status="neutral" size="sm" showIcon={false}>
+                          {rule}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
+
+                {policyChecks?.citations && policyChecks.citations.length > 0 && (
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Official Policy References
+                    </h4>
+                    <ul className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                      {policyChecks.citations.map((c, idx) => (
+                        <li key={idx} className="flex items-start space-x-2">
+                          <span className="text-indigo-600 font-bold">•</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {policyChecks?.triggered_red_flags &&
+                  policyChecks.triggered_red_flags.length > 0 && (
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center space-x-1">
+                        <ShieldAlert className="w-4 h-4 text-rose-600" />
+                        <span>Security / Red Flags Flagged</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {policyChecks.triggered_red_flags.map((flag) => (
+                          <Badge key={flag} status="denied" size="sm">
+                            {flag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
             ) : (
               <div className="py-16 text-center space-y-3 text-slate-400">
