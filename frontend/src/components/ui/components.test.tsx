@@ -40,6 +40,13 @@ describe("UI Foundation Primitives", () => {
       const result = cn("base-class", isActive && "active", isPending && "pending", null, undefined);
       expect(result).toBe("base-class pending");
     });
+
+    it("handles empty inputs, arrays, and object notation (covers: AC-2)", () => {
+      const isHidden = false;
+      expect(cn()).toBe("");
+      expect(cn(["btn", isHidden && "hidden", ["btn-primary"]])).toBe("btn btn-primary");
+      expect(cn({ "font-bold": true, "font-normal": false })).toBe("font-bold");
+    });
   });
 
   describe("Button component", () => {
@@ -63,11 +70,32 @@ describe("UI Foundation Primitives", () => {
       expect(secondaryHtml).toContain("bg-zinc-100");
     });
 
+    it("renders ghost variant and size variations (covers: AC-3)", () => {
+      const ghostHtml = renderToStaticMarkup(<Button variant="ghost">Dismiss</Button>);
+      expect(ghostHtml).toContain("hover:bg-zinc-100");
+      expect(ghostHtml).toContain("text-zinc-700");
+
+      const smHtml = renderToStaticMarkup(<Button size="sm">Small</Button>);
+      expect(smHtml).toContain("text-xs");
+      expect(smHtml).toContain("px-2.5");
+
+      const lgHtml = renderToStaticMarkup(<Button size="lg">Large</Button>);
+      expect(lgHtml).toContain("text-base");
+      expect(lgHtml).toContain("px-4");
+    });
+
     it("handles loading state with spinner and disables button (covers: AC-3)", () => {
       const html = renderToStaticMarkup(<Button isLoading>Processing</Button>);
       expect(html).toContain("disabled");
       expect(html).toContain('aria-busy="true"');
       expect(html).toContain("animate-spin");
+    });
+
+    it("respects native disabled attribute and applies disabled styles (covers: AC-3)", () => {
+      const html = renderToStaticMarkup(<Button disabled>Unavailable</Button>);
+      expect(html).toContain("disabled");
+      expect(html).toContain("opacity-50");
+      expect(html).toContain("pointer-events-none");
     });
   });
 
@@ -93,6 +121,16 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain("Automated policy check results");
       expect(html).toContain("Evaluation details here.");
     });
+
+    it("merges custom className on card elements safely (covers: AC-3)", () => {
+      const html = renderToStaticMarkup(
+        <Card className="custom-shadow">
+          <CardContent className="p-10">Body</CardContent>
+        </Card>,
+      );
+      expect(html).toContain("custom-shadow");
+      expect(html).toContain("p-10");
+    });
   });
 
   describe("Input and FormField components", () => {
@@ -101,6 +139,13 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain('type="text"');
       expect(html).toContain("placeholder=\"Enter order ID\"");
       expect(html).toContain("border-zinc-300");
+    });
+
+    it("renders Input with explicit hasError styling (covers: AC-6)", () => {
+      const html = renderToStaticMarkup(<Input hasError placeholder="Invalid input" />);
+      expect(html).toContain("border-rose-300");
+      expect(html).toContain("focus-visible:ring-rose-500");
+      expect(html).toContain('aria-invalid="true"');
     });
 
     it("wires accessible label and error state in FormField (covers: AC-6)", () => {
@@ -131,6 +176,23 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain("Located in your confirmation receipt");
       expect(html).not.toContain('role="alert"');
     });
+
+    it("links both error and helper text in aria-describedby when both are present (covers: AC-6)", () => {
+      const html = renderToStaticMarkup(
+        <FormField
+          id="amount-field"
+          label="Refund Amount"
+          helperText="Maximum allowed is $500"
+          error="Amount must be positive"
+        >
+          <Input />
+        </FormField>,
+      );
+
+      expect(html).toContain('aria-describedby="amount-field-error amount-field-helper"');
+      expect(html).toContain('aria-invalid="true"');
+      expect(html).toContain("Amount must be positive");
+    });
   });
 
   describe("Badge component", () => {
@@ -157,6 +219,12 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain("bg-zinc-100");
       expect(html).toContain("pending");
     });
+
+    it("merges custom className and preserves semantic border styling (covers: AC-2, AC-5)", () => {
+      const html = renderToStaticMarkup(<Badge status="approved" className="shadow-xs" />);
+      expect(html).toContain("shadow-xs");
+      expect(html).toContain("border");
+    });
   });
 
   describe("Dialog component", () => {
@@ -172,6 +240,16 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain("Provide reason for policy exception");
       expect(html).toContain('aria-label="Close dialog"');
       expect(html).toContain("Dialog content");
+    });
+
+    it("renders dialog with custom className (covers: AC-3, AC-4)", () => {
+      const html = renderToStaticMarkup(
+        <Dialog isOpen={true} onClose={() => {}} className="max-w-xl">
+          <div>Custom Width Content</div>
+        </Dialog>,
+      );
+      expect(html).toContain("<dialog");
+      expect(html).toContain("max-w-xl");
     });
   });
 
@@ -193,6 +271,16 @@ describe("UI Foundation Primitives", () => {
       );
       expect(errorHtml).toContain("bg-rose-50");
       expect(errorHtml).toContain("Final sale items are excluded from returns.");
+    });
+
+    it("renders info and success alerts with semantic container tokens (covers: AC-1, AC-3)", () => {
+      const infoHtml = renderToStaticMarkup(<Alert variant="info">System operational</Alert>);
+      expect(infoHtml).toContain("bg-zinc-50");
+      expect(infoHtml).toContain("System operational");
+
+      const successHtml = renderToStaticMarkup(<Alert variant="success" title="Success">Refund paid</Alert>);
+      expect(successHtml).toContain("bg-emerald-50");
+      expect(successHtml).toContain("Refund paid");
     });
 
     it("renders dismiss action button when onClose is provided (covers: AC-3)", () => {
@@ -233,6 +321,20 @@ describe("UI Foundation Primitives", () => {
       expect(html).toContain("<td");
       expect(html).toContain("ORD-2026-9001");
       expect(html).toContain("font-mono");
+    });
+
+    it("wraps table in responsive overflow container (covers: AC-3)", () => {
+      const html = renderToStaticMarkup(
+        <Table className="min-w-full">
+          <TableBody>
+            <TableRow>
+              <TableCell>Data</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>,
+      );
+      expect(html).toContain("overflow-auto");
+      expect(html).toContain("w-full");
     });
   });
 });
