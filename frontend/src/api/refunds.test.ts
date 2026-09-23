@@ -125,4 +125,68 @@ describe('refundApi', () => {
     });
     expect(result).toEqual(mockLogs);
   });
+
+  it('submitRefundRequest sends quantity and item_condition payload (covers: AC-2)', async () => {
+    const payload = {
+      customer_email: 'sarah.jenkins@example.com',
+      order_number: 'ORD-2026-9001',
+      item_id: 'item-uuid-1',
+      amount: 90.0,
+      reason_category: 'defective',
+      customer_explanation: 'Broken hinges',
+      quantity: 2,
+      item_condition: 'opened_used',
+    };
+
+    const mockResponse = {
+      id: 'ref-100',
+      request_number: 'REF-1234567890',
+      customer_id: 'cust-1',
+      order_id: 'ord-1',
+      amount: 90.0,
+      currency: 'USD',
+      reason_category: 'defective',
+      customer_explanation: 'Broken hinges',
+      decision: 'Approved' as const,
+      confidence_score: 0.95,
+      policy_checks: {
+        matched_rules: ['RULE_RETURN_WINDOW'],
+        citations: ['Refund Policy § 1.1'],
+      },
+      human_override: false,
+      created_at: '2026-09-23',
+      updated_at: '2026-09-23',
+    };
+
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ data: mockResponse });
+
+    const result = await refundApi.submitRefundRequest(payload);
+    expect(postSpy).toHaveBeenCalledWith('/refunds/process', payload);
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('getRefundRequestDetail queries detail endpoint by ID (covers: AC-5, AC-6)', async () => {
+    const mockDetail = {
+      id: 'ref-detail-1',
+      request_number: 'REF-ABC1234567',
+      customer_id: 'cust-1',
+      order_id: 'ord-1',
+      amount: 45.0,
+      currency: 'USD',
+      reason_category: 'defective',
+      customer_explanation: 'Faulty scroll wheel',
+      decision: 'Approved' as const,
+      status: 'approved',
+      confidence_score: 0.95,
+      human_override: false,
+      created_at: '2026-09-23',
+      updated_at: '2026-09-23',
+    };
+
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ data: mockDetail });
+
+    const result = await refundApi.getRefundRequestDetail('ref-detail-1');
+    expect(getSpy).toHaveBeenCalledWith('/admin/refunds/ref-detail-1');
+    expect(result).toEqual(mockDetail);
+  });
 });
