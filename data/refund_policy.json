@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "policy_name": "E-Commerce Customer Support Refund Policy",
+  "last_updated": "2026-09-23",
+  "general_rules": {
+    "return_window_days": 30,
+    "max_auto_approval_amount": 100.0,
+    "require_human_escalation_amount": 500.0,
+    "high_risk_return_rate_threshold": 0.40,
+    "excessive_refunds_count_threshold": 3
+  },
+  "decision_types": [
+    "Approved",
+    "Denied",
+    "Escalated"
+  ],
+  "categories": {
+    "eligible_categories": [
+      "electronics",
+      "apparel",
+      "home_goods",
+      "accessories",
+      "books",
+      "toys"
+    ],
+    "non_refundable_categories": [
+      "gift_cards",
+      "perishables",
+      "custom_items",
+      "digital_downloads",
+      "clearance_items",
+      "personal_hygiene"
+    ]
+  },
+  "rules": [
+    {
+      "id": "RULE_TIME_LIMIT",
+      "name": "Return Window Validation",
+      "description": "Item must have been delivered within 30 days of the refund request date.",
+      "condition": "days_since_delivery <= 30",
+      "violation_action": "Denied",
+      "exception": "Applies unless item arrived damaged or defective with immediate report within 7 days."
+    },
+    {
+      "id": "RULE_NON_REFUNDABLE",
+      "name": "Non-Refundable Category Exclusion",
+      "description": "Certain categories such as gift cards, perishables, and clearance items are strictly non-refundable.",
+      "condition": "item_category not in non_refundable_categories",
+      "violation_action": "Denied",
+      "exception": null
+    },
+    {
+      "id": "RULE_DAMAGED_DEFECTIVE",
+      "name": "Damaged or Defective Items",
+      "description": "Items arriving damaged or defective are eligible for full refund or replacement.",
+      "condition": "reason in ['damaged_on_arrival', 'defective', 'wrong_item_sent']",
+      "action": "Approved",
+      "override_time_limit_days": 45
+    },
+    {
+      "id": "RULE_HIGH_VALUE_ESCALATION",
+      "name": "High Value Refund Escalation",
+      "description": "Refund requests exceeding $500 require human customer support manager approval.",
+      "condition": "amount > 500.0",
+      "action": "Escalated",
+      "reason": "Exceeds automated approval amount threshold ($500.00)."
+    },
+    {
+      "id": "RULE_SUSPICIOUS_RETURN_RATE",
+      "name": "High Risk Customer Return Rate Escalation",
+      "description": "Customers with return rate >= 40% or >= 3 previous refunds are flagged for fraud risk.",
+      "condition": "customer.return_rate >= 0.40 or customer.refunds_count >= 3",
+      "action": "Escalated",
+      "reason": "Customer account exhibits high return frequency or elevated risk score."
+    },
+    {
+      "id": "RULE_VIP_GOOD_STANDING",
+      "name": "Good Standing Fast-Track",
+      "description": "Loyal customers with low return rates (<10%) and amount <= $100 receive fast-track auto-approval.",
+      "condition": "customer.return_rate < 0.10 and amount <= 100.0 and days_since_delivery <= 30",
+      "action": "Approved"
+    },
+    {
+      "id": "RULE_BUYER_REMORSE_OPENED",
+      "name": "Opened Item Buyer Remorse",
+      "description": "Buyer remorse or unwanted items that have been opened and used cannot be refunded.",
+      "condition": "reason in ['unwanted', 'bought_by_mistake', 'changed_mind'] and item_condition == 'opened_used'",
+      "violation_action": "Denied",
+      "reason": "Opened and used items are not eligible for remorse-based returns."
+    }
+  ]
+}

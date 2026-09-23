@@ -1,0 +1,11 @@
+{
+  "tool": "vitest",
+  "gate": null,
+  "additionalTools": [
+    "pytest"
+  ],
+  "e2eTool": "none",
+  "testDir": "tests",
+  "filePattern": "*.test.ts",
+  "packageManager": "npm"
+}

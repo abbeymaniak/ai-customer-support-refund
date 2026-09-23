@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: refund_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-refunds_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-refunds_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-refunds_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/seed.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-refunds_user} -d ${POSTGRES_DB:-refunds_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: refund_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data:ro
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-refunds_user}:${POSTGRES_PASSWORD:-refunds_pass}@postgres:5432/${POSTGRES_DB:-refunds_db}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai/gpt-4o-mini}
+      - LLM_FALLBACK_PROVIDER=${LLM_FALLBACK_PROVIDER:-ollama/llama3}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OLLAMA_API_BASE=${OLLAMA_API_BASE:-http://ollama:11434}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: refund_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
