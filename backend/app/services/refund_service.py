@@ -111,7 +111,7 @@ class RefundService:
         llm_audit_data = {}
 
         # 6. Phase 2: AI Contextual Evaluation with Fallback
-        ai_engine = AIDecisionEngine()
+        ai_engine = AIDecisionEngine(self.db)
         try:
             ai_res = await ai_engine.evaluate_refund_request(
                 customer_info={

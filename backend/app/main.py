@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.core.logging import setup_logging
-from app.routes import admin, customers, health, refunds
+from app.routes import admin, admin_settings, customers, health, refunds
 
 setup_logging()
 
@@ -28,3 +28,6 @@ app.include_router(health.router, tags=["Health"])
 app.include_router(refunds.router, prefix="/api/refunds", tags=["Refunds"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(
+    admin_settings.router, prefix="/api/admin/settings", tags=["Admin Settings"]
+)
