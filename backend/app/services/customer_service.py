@@ -5,6 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.customer import Customer
 from app.models.order import Order
@@ -68,3 +69,14 @@ class CustomerService:
         await self.db.commit()
         await self.db.refresh(customer)
         return customer
+
+    async def get_customer_orders(self, customer_id: uuid.UUID) -> list[Order]:
+        """Fetch all orders for a customer with loaded order items."""
+        stmt = (
+            select(Order)
+            .where(Order.customer_id == customer_id)
+            .options(selectinload(Order.order_items))
+            .order_by(Order.order_date.desc())
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
