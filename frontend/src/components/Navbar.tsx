@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, RefreshCw } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, RefreshCw, Settings } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
@@ -43,13 +43,25 @@ export const Navbar: React.FC = () => {
             <Link
               to="/admin"
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/admin') || location.pathname.startsWith('/admin')
+                location.pathname === '/admin' || location.pathname.startsWith('/admin/refunds')
                   ? 'bg-indigo-50 text-indigo-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
               <span>Admin Dashboard</span>
+            </Link>
+
+            <Link
+              to="/admin/settings"
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive('/admin/settings')
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>AI Settings</span>
             </Link>
           </nav>
         </div>

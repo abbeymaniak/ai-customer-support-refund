@@ -59,12 +59,14 @@ export interface RefundRequest {
   decision: DecisionType;
   decision_reason?: string;
   confidence_score?: number;
-  policy_checks?: {
-    matched_rules?: string[];
-    triggered_red_flags?: string[];
-    reasons?: string[];
-    citations?: string[];
-  } | Record<string, unknown>;
+  policy_checks?:
+    | {
+        matched_rules?: string[];
+        triggered_red_flags?: string[];
+        reasons?: string[];
+        citations?: string[];
+      }
+    | Record<string, unknown>;
   llm_audit_data?: Record<string, unknown>;
   human_override: boolean;
   override_reason?: string;
@@ -102,3 +104,42 @@ export interface RefundSubmissionPayload {
   item_condition?: string;
 }
 
+export interface LLMProvider {
+  id: string;
+  llm: string;
+  is_active: boolean;
+  llm_model: string;
+  has_api_key: boolean;
+  api_key_masked: string | null;
+  api_base: string | null;
+  temperature: number;
+  timeout_seconds: number;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LLMProviderUpdatePayload {
+  llm_model?: string;
+  api_key?: string;
+  api_base?: string;
+  is_active?: boolean;
+  temperature?: number;
+  timeout_seconds?: number;
+}
+
+export interface LLMTestProbePayload {
+  llm: string;
+  llm_model?: string;
+  api_key?: string;
+  api_base?: string;
+}
+
+export interface LLMTestProbeResponse {
+  llm: string;
+  llm_model: string;
+  status: 'online' | 'offline';
+  latency_ms: number;
+  message: string;
+  error?: string | null;
+}

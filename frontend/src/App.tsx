@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar';
 import { RefundRequestPage } from './pages/RefundRequest';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import { RequestDetailPage } from './pages/RequestDetail';
+import { AdminSettingsPage } from './pages/AdminSettings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
               <Route path="/" element={<RefundRequestPage />} />
               <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="/admin/refunds/:id" element={<RequestDetailPage />} />
+              <Route path="/admin/settings" element={<AdminSettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
