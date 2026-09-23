@@ -1,13 +1,17 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "policy_name": "E-Commerce Customer Support Refund Policy",
   "last_updated": "2026-09-23",
+  "description": "Official store refund policy rules and criteria used by the customer support evaluation system.",
   "general_rules": {
-    "return_window_days": 30,
+    "return_window_days": 90,
+    "damaged_defective_window_days": 120,
+    "immediate_report_window_days": 7,
     "max_auto_approval_amount": 100.0,
     "require_human_escalation_amount": 500.0,
     "high_risk_return_rate_threshold": 0.40,
-    "excessive_refunds_count_threshold": 3
+    "excessive_refunds_count_threshold": 3,
+    "rapid_repeat_claims_window_hours": 48
   },
   "decision_types": [
     "Approved",
@@ -21,72 +25,134 @@
       "home_goods",
       "accessories",
       "books",
-      "toys"
+      "toys",
+      "office_supplies",
+      "sports_outdoors"
     ],
     "non_refundable_categories": [
       "gift_cards",
       "perishables",
-      "custom_items",
       "digital_downloads",
-      "clearance_items",
-      "personal_hygiene"
+      "custom_items",
+      "personal_hygiene",
+      "clearance_items"
     ]
   },
+  "item_conditions": [
+    "unopened_original_packaging",
+    "opened_like_new",
+    "opened_used",
+    "damaged_in_transit",
+    "defective_manufacturing",
+    "wrong_item_received"
+  ],
   "rules": [
     {
-      "id": "RULE_TIME_LIMIT",
-      "name": "Return Window Validation",
-      "description": "Item must have been delivered within 30 days of the refund request date.",
-      "condition": "days_since_delivery <= 30",
+      "id": "RULE_FINAL_SALE",
+      "name": "Final Sale Exclusions",
+      "description": "Items marked as final sale or belonging to non-refundable categories are strictly excluded from refunds and returns.",
+      "condition": "item.is_final_sale == true or item.category in non_refundable_categories",
+      "action": "Denied",
       "violation_action": "Denied",
-      "exception": "Applies unless item arrived damaged or defective with immediate report within 7 days."
+      "exception": null,
+      "citation": "Refund Policy § 1.1 (Final Sale and Excluded Categories)"
     },
     {
-      "id": "RULE_NON_REFUNDABLE",
-      "name": "Non-Refundable Category Exclusion",
-      "description": "Certain categories such as gift cards, perishables, and clearance items are strictly non-refundable.",
-      "condition": "item_category not in non_refundable_categories",
+      "id": "RULE_RETURN_WINDOW",
+      "name": "90-Day Return Window Validation",
+      "description": "Standard refund requests must be submitted within 90 calendar days of the confirmed delivery date.",
+      "condition": "days_since_delivery <= 90",
+      "action": null,
       "violation_action": "Denied",
-      "exception": null
-    },
-    {
-      "id": "RULE_DAMAGED_DEFECTIVE",
-      "name": "Damaged or Defective Items",
-      "description": "Items arriving damaged or defective are eligible for full refund or replacement.",
-      "condition": "reason in ['damaged_on_arrival', 'defective', 'wrong_item_sent']",
-      "action": "Approved",
-      "override_time_limit_days": 45
+      "exception": "Overridden by RULE_DAMAGED_INCORRECT_ITEM if photographic proof of defect or transit damage is provided within 120 days.",
+      "citation": "Refund Policy § 1.2 (Standard 90-Day Return Window)"
     },
     {
       "id": "RULE_HIGH_VALUE_ESCALATION",
-      "name": "High Value Refund Escalation",
-      "description": "Refund requests exceeding $500 require human customer support manager approval.",
-      "condition": "amount > 500.0",
+      "name": "High Value Refund Escalation Threshold",
+      "description": "Refund requests where the total claimed amount exceeds $500.00 require human customer support supervisor review.",
+      "condition": "total_refund_amount > 500.0",
       "action": "Escalated",
-      "reason": "Exceeds automated approval amount threshold ($500.00)."
+      "violation_action": null,
+      "exception": null,
+      "citation": "Refund Policy § 2.1 (Manager Escalation Thresholds)"
     },
     {
-      "id": "RULE_SUSPICIOUS_RETURN_RATE",
-      "name": "High Risk Customer Return Rate Escalation",
-      "description": "Customers with return rate >= 40% or >= 3 previous refunds are flagged for fraud risk.",
-      "condition": "customer.return_rate >= 0.40 or customer.refunds_count >= 3",
-      "action": "Escalated",
-      "reason": "Customer account exhibits high return frequency or elevated risk score."
+      "id": "RULE_DAMAGED_INCORRECT_ITEM",
+      "name": "Damaged, Defective, or Incorrect Item Protection",
+      "description": "Items delivered damaged, defective, or differing from the ordered item qualify for full refund or replacement.",
+      "condition": "reason in ['damaged_on_arrival', 'defective', 'wrong_item_sent']",
+      "action": "Approved",
+      "violation_action": null,
+      "exception": "Requires supervisor escalation if total amount exceeds $500.00 or if fraud flags are triggered.",
+      "citation": "Refund Policy § 2.2 (Damaged and Defective Merchandise)"
     },
     {
-      "id": "RULE_VIP_GOOD_STANDING",
-      "name": "Good Standing Fast-Track",
-      "description": "Loyal customers with low return rates (<10%) and amount <= $100 receive fast-track auto-approval.",
-      "condition": "customer.return_rate < 0.10 and amount <= 100.0 and days_since_delivery <= 30",
-      "action": "Approved"
-    },
-    {
-      "id": "RULE_BUYER_REMORSE_OPENED",
-      "name": "Opened Item Buyer Remorse",
-      "description": "Buyer remorse or unwanted items that have been opened and used cannot be refunded.",
-      "condition": "reason in ['unwanted', 'bought_by_mistake', 'changed_mind'] and item_condition == 'opened_used'",
+      "id": "RULE_BUYER_REMORSE",
+      "name": "Buyer Remorse and Changed Mind",
+      "description": "Returns due to buyer remorse are eligible within 90 days only if item is unopened or in original like-new condition.",
+      "condition": "reason in ['unwanted', 'bought_by_mistake', 'changed_mind'] and item_condition in ['unopened_original_packaging', 'opened_like_new']",
+      "action": "Approved",
       "violation_action": "Denied",
-      "reason": "Opened and used items are not eligible for remorse-based returns."
+      "exception": "Opened and used items returned solely for buyer remorse are ineligible for refund.",
+      "citation": "Refund Policy § 2.3 (Remorse Returns and Item Condition)"
+    },
+    {
+      "id": "RULE_GOOD_STANDING_FAST_TRACK",
+      "name": "Good Standing Fast-Track Auto-Approval",
+      "description": "Established customers with low return rates (<10%) and claim amount <= $100.00 within 90 days qualify for instant automated approval.",
+      "condition": "customer.return_rate < 0.10 and total_refund_amount <= 100.0 and days_since_delivery <= 90 and item.is_final_sale == false",
+      "action": "Approved",
+      "violation_action": null,
+      "exception": null,
+      "citation": "Refund Policy § 2.4 (Fast-Track Customer Auto-Approval)"
+    }
+  ],
+  "red_flags": [
+    {
+      "id": "FLAG_DUPLICATE_CLAIM",
+      "name": "Duplicate Refund Request",
+      "description": "A refund request for the same order or order item was previously submitted, approved, or is currently under active review.",
+      "condition": "has_prior_refund_for_order == true or has_prior_refund_for_item == true",
+      "risk_level": "High",
+      "action": "Escalated",
+      "citation": "Fraud Prevention § 3.1 (Duplicate Request Prevention)"
+    },
+    {
+      "id": "FLAG_CONFLICTING_CLAIMS",
+      "name": "Conflicting or Inconsistent Evidence",
+      "description": "Customer claim contradicts confirmed carrier delivery status or presents conflicting condition statements.",
+      "condition": "reason == 'item_not_received' and order.status == 'delivered' and carrier_signature_present == true",
+      "risk_level": "High",
+      "action": "Escalated",
+      "citation": "Fraud Prevention § 3.2 (Inconsistent Claim Verification)"
+    },
+    {
+      "id": "FLAG_HIGH_RISK_RETURN_RATE",
+      "name": "Elevated Customer Return Frequency",
+      "description": "Customer account exhibits return rate of 40% or higher, or 3 or more historical refunds on record.",
+      "condition": "customer.return_rate >= 0.40 or customer.refunds_count >= 3",
+      "risk_level": "High",
+      "action": "Escalated",
+      "citation": "Fraud Prevention § 3.3 (High-Frequency Return Audits)"
+    },
+    {
+      "id": "FLAG_RAPID_REPEAT_CLAIMS",
+      "name": "Rapid Repeat Claims Cluster",
+      "description": "Customer submitted multiple refund requests across different orders within a 48-hour window.",
+      "condition": "claims_in_past_48h >= 2",
+      "risk_level": "Medium",
+      "action": "Escalated",
+      "citation": "Fraud Prevention § 3.4 (Velocity Checks)"
+    },
+    {
+      "id": "FLAG_POLICY_EVASION_ATTEMPT",
+      "name": "Suspected Policy Evasion or Prompt Injection",
+      "description": "Customer request contains instructions or adversarial phrasing attempting to bypass policy thresholds.",
+      "condition": "adversarial_instruction_detected == true",
+      "risk_level": "High",
+      "action": "Escalated",
+      "citation": "Fraud Prevention § 3.5 (Security and Policy Integrity)"
     }
   ]
 }

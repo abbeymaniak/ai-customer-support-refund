@@ -2,7 +2,7 @@
 
 import unittest
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 try:
     from app.models.audit_log import AuditLog
@@ -50,7 +50,7 @@ class TestModelDefinitions(unittest.TestCase):
         """Test Order and OrderItem attributes and foreign key ties (covers: AC-1, AC-2, AC-3)."""
         order_id = uuid.uuid4()
         customer_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         delivery = now - timedelta(days=5)
 
         order = Order(
@@ -208,8 +208,8 @@ class TestPolicyEvaluationInvariants(unittest.TestCase):
 
     def test_delivery_window_calculation_within_30_days(self):
         """Orders delivered within 30 days are eligible for return window (covers: AC-3)."""
-        order_delivery = datetime.now(timezone.utc) - timedelta(days=12)
-        request_time = datetime.now(timezone.utc)
+        order_delivery = datetime.now(UTC) - timedelta(days=12)
+        request_time = datetime.now(UTC)
         days_elapsed = (request_time - order_delivery).days
         is_eligible = days_elapsed <= 30
         self.assertTrue(is_eligible)
@@ -217,8 +217,8 @@ class TestPolicyEvaluationInvariants(unittest.TestCase):
 
     def test_delivery_window_calculation_exceeding_30_days(self):
         """Orders delivered more than 30 days ago exceed return window (covers: AC-3)."""
-        order_delivery = datetime.now(timezone.utc) - timedelta(days=45)
-        request_time = datetime.now(timezone.utc)
+        order_delivery = datetime.now(UTC) - timedelta(days=45)
+        request_time = datetime.now(UTC)
         days_elapsed = (request_time - order_delivery).days
         is_eligible = days_elapsed <= 30
         self.assertFalse(is_eligible)
