@@ -1,5 +1,16 @@
 import { apiClient } from './client';
-import type { Customer, Order, RefundRequest, RefundSubmissionPayload, AuditLog } from '../types';
+import type {
+  Customer,
+  Order,
+  RefundRequest,
+  RefundSubmissionPayload,
+  AuditLog,
+  RefundAdminListResponse,
+  RefundAdminDetail,
+  RefundStats,
+  RefundOverridePayload,
+  RefundListParams,
+} from '../types';
 
 export const refundApi = {
   // Customer & Order Lookups
@@ -22,25 +33,26 @@ export const refundApi = {
   },
 
   // Admin & Audit
-  async listRefundRequests(params?: {
-    decision?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<RefundRequest[]> {
-    const { data } = await apiClient.get<RefundRequest[]>('/admin/refunds', { params });
+  async listRefundRequests(params?: RefundListParams): Promise<RefundAdminListResponse> {
+    const { data } = await apiClient.get<RefundAdminListResponse>('/admin/refunds', { params });
     return data;
   },
 
-  async getRefundRequestDetail(id: string): Promise<RefundRequest> {
-    const { data } = await apiClient.get<RefundRequest>(`/admin/refunds/${id}`);
+  async getRefundStats(): Promise<RefundStats> {
+    const { data } = await apiClient.get<RefundStats>('/admin/stats');
+    return data;
+  },
+
+  async getRefundRequestDetail(id: string): Promise<RefundAdminDetail> {
+    const { data } = await apiClient.get<RefundAdminDetail>(`/admin/refunds/${id}`);
     return data;
   },
 
   async overrideDecision(
     id: string,
-    payload: { decision: string; reason: string; actor: string }
-  ): Promise<RefundRequest> {
-    const { data } = await apiClient.post<RefundRequest>(`/admin/refunds/${id}/override`, payload);
+    payload: RefundOverridePayload
+  ): Promise<RefundAdminDetail> {
+    const { data } = await apiClient.post<RefundAdminDetail>(`/admin/refunds/${id}/override`, payload);
     return data;
   },
 

@@ -59,6 +59,9 @@ export interface RefundRequest {
   decision: DecisionType;
   decision_reason?: string;
   confidence_score?: number;
+  ai_decision?: string;
+  ai_confidence?: number;
+  ai_reasoning?: string;
   policy_checks?:
     | {
         matched_rules?: string[];
@@ -143,3 +146,64 @@ export interface LLMTestProbeResponse {
   message: string;
   error?: string | null;
 }
+
+export interface RefundAdminListItem {
+  id: string;
+  request_number: string;
+  customer_id: string;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  order_id: string;
+  order_number?: string | null;
+  item_name?: string | null;
+  amount: number;
+  currency: string;
+  reason_category: string;
+  status: string;
+  decision: DecisionType;
+  confidence_score?: number | null;
+  human_override: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RefundAdminListResponse {
+  items: RefundAdminListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RefundStats {
+  total_requests: number;
+  approved_count: number;
+  denied_count: number;
+  escalated_count: number;
+  approval_rate: number;
+  human_overrides_count: number;
+  total_refunded_amount: number;
+}
+
+export interface RefundAdminDetail extends RefundRequest {
+  customer?: Customer;
+  order?: Order;
+  audit_logs?: AuditLog[];
+}
+
+export interface RefundOverridePayload {
+  decision: 'Approved' | 'Denied' | 'Escalated';
+  reason: string;
+  actor?: string;
+}
+
+export interface RefundListParams {
+  decision?: string;
+  search?: string;
+  start_date?: string;
+  end_date?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
