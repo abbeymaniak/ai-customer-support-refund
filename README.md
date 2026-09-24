@@ -114,8 +114,46 @@ Accessible at [http://localhost:5173](http://localhost:5173).
 
 ## Testing
 
-### Backend Tests:
+### Backend Tests
+
+#### Option 1: Run via Docker Compose (Recommended)
+When Docker is running, execute tests directly inside the backend container without needing local Python setup:
+
+```bash
+docker compose exec backend pytest
+```
+
+To run a specific test file:
+
+```bash
+docker compose exec backend pytest tests/test_security_validation.py
+```
+
+#### Option 2: Run Locally on Host
+If running directly on your machine outside Docker, activate the virtual environment first so required dependencies such as `httpx` are loaded:
+
 ```bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 pytest
+```
+
+> **Note**: Running `pytest` directly on your host without activating `.venv` uses your global Python environment, which will trigger `ModuleNotFoundError: No module named 'httpx'`. Always activate the virtual environment or run via Docker.
+
+### Frontend Tests
+
+Run the Vitest unit testing suite:
+
+```bash
+cd frontend
+npm test
+```
+
+Build the production bundle and verify TypeScript types:
+
+```bash
+cd frontend
+npm run build
 ```
