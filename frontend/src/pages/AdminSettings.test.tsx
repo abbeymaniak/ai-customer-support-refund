@@ -144,4 +144,3 @@ describe('AdminSettingsPage Component', () => {
     expect(markup).toContain('Save Settings');
   });
 });
-

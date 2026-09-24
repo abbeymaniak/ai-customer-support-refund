@@ -42,7 +42,9 @@ describe('RefundRequestPage Component', () => {
 
     expect(markup).toContain('AI Decision Engine Verdict');
     expect(markup).toContain('Real time policy validation and multi factor risk determination');
-    expect(markup).toContain('Select an order and item on the left to trigger the AI decision engine');
+    expect(markup).toContain(
+      'Select an order and item on the left to trigger the AI decision engine'
+    );
   });
 
   it('contains portal title and explanation copy', () => {

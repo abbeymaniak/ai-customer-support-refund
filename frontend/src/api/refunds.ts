@@ -48,11 +48,11 @@ export const refundApi = {
     return data;
   },
 
-  async overrideDecision(
-    id: string,
-    payload: RefundOverridePayload
-  ): Promise<RefundAdminDetail> {
-    const { data } = await apiClient.post<RefundAdminDetail>(`/admin/refunds/${id}/override`, payload);
+  async overrideDecision(id: string, payload: RefundOverridePayload): Promise<RefundAdminDetail> {
+    const { data } = await apiClient.post<RefundAdminDetail>(
+      `/admin/refunds/${id}/override`,
+      payload
+    );
     return data;
   },
 

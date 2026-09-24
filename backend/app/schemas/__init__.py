@@ -1,3 +1,9 @@
+from app.schemas.auth import (
+    AdminUserResponse,
+    AuthStatusResponse,
+    LoginRequest,
+    TokenPayload,
+)
 from app.schemas.policy import (
     CategoryRules,
     DecisionType,
@@ -18,4 +24,8 @@ __all__ = [
     "RedFlag",
     "PolicyDocument",
     "RuleEvaluationResult",
+    "LoginRequest",
+    "AdminUserResponse",
+    "TokenPayload",
+    "AuthStatusResponse",
 ]

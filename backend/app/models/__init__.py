@@ -1,4 +1,5 @@
 from app.models.audit_log import AuditLog
+from app.models.auth import AdminUser, RefreshToken
 from app.models.customer import Customer
 from app.models.llm_provider import LLMProvider
 from app.models.order import Order
@@ -14,4 +15,6 @@ __all__ = [
     "RefundItem",
     "AuditLog",
     "LLMProvider",
+    "AdminUser",
+    "RefreshToken",
 ]

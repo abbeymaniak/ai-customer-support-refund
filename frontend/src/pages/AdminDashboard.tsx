@@ -23,11 +23,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { refundApi } from '../api/refunds';
-import type {
-  RefundAdminListItem,
-  RefundAdminDetail,
-  RefundListParams,
-} from '../types';
+import type { RefundAdminListItem, RefundAdminDetail, RefundListParams } from '../types';
 
 export const AdminDashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -46,7 +42,9 @@ export const AdminDashboardPage: React.FC = () => {
   // Inspection Drawer & Override Modal state
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [overrideModalOpen, setOverrideModalOpen] = useState<boolean>(false);
-  const [overrideDecision, setOverrideDecision] = useState<'Approved' | 'Denied' | 'Escalated'>('Approved');
+  const [overrideDecision, setOverrideDecision] = useState<'Approved' | 'Denied' | 'Escalated'>(
+    'Approved'
+  );
   const [overrideReason, setOverrideReason] = useState<string>('');
   const [overrideError, setOverrideError] = useState<string | null>(null);
 
@@ -185,7 +183,8 @@ export const AdminDashboardPage: React.FC = () => {
             Support Agent Refund Console
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Review automated AI refund evaluations, inspect audit logs, and provide supervisor overrides.
+            Review automated AI refund evaluations, inspect audit logs, and provide supervisor
+            overrides.
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -263,7 +262,9 @@ export const AdminDashboardPage: React.FC = () => {
             <DollarSign className="w-3.5 h-3.5 text-indigo-500" />
           </span>
           <div className="text-2xl font-black text-indigo-900">
-            {stats ? `$${stats.total_refunded_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+            {stats
+              ? `$${stats.total_refunded_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              : '—'}
           </div>
         </div>
       </div>
@@ -428,7 +429,9 @@ export const AdminDashboardPage: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-400 space-y-2">
                     <p className="font-semibold text-slate-600">No refund requests found</p>
-                    <p className="text-xs">Try adjusting your status filter, search terms, or date range.</p>
+                    <p className="text-xs">
+                      Try adjusting your status filter, search terms, or date range.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -479,9 +482,15 @@ export const AdminDashboardPage: React.FC = () => {
                               : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
-                        {req.decision.toLowerCase() === 'approved' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {req.decision.toLowerCase() === 'denied' && <XCircle className="w-3.5 h-3.5" />}
-                        {req.decision.toLowerCase() === 'escalated' && <AlertTriangle className="w-3.5 h-3.5" />}
+                        {req.decision.toLowerCase() === 'approved' && (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        {req.decision.toLowerCase() === 'denied' && (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
+                        {req.decision.toLowerCase() === 'escalated' && (
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                        )}
                         <span className="capitalize">{req.decision}</span>
                       </span>
                     </td>
@@ -632,11 +641,17 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Amount and Reason Overview */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-semibold">Claim Amount</span>
-                      <div className="text-2xl font-black text-slate-900">${selectedDetail.amount.toFixed(2)}</div>
+                      <span className="text-xs text-slate-500 uppercase font-semibold">
+                        Claim Amount
+                      </span>
+                      <div className="text-2xl font-black text-slate-900">
+                        ${selectedDetail.amount.toFixed(2)}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-slate-500 uppercase font-semibold">Category</span>
+                      <span className="text-xs text-slate-500 uppercase font-semibold">
+                        Category
+                      </span>
                       <div className="text-sm font-bold text-slate-800 capitalize">
                         {selectedDetail.reason_category.replace(/_/g, ' ')}
                       </div>
@@ -652,11 +667,15 @@ export const AdminDashboardPage: React.FC = () => {
                     <div className="bg-white border border-slate-200 rounded-xl p-4 text-xs space-y-2">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Customer Name:</span>
-                        <span className="font-semibold text-slate-900">{selectedDetail.customer?.name || '—'}</span>
+                        <span className="font-semibold text-slate-900">
+                          {selectedDetail.customer?.name || '—'}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Email:</span>
-                        <span className="text-slate-700 font-mono">{selectedDetail.customer?.email || '—'}</span>
+                        <span className="text-slate-700 font-mono">
+                          {selectedDetail.customer?.email || '—'}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center pt-1 border-t border-slate-100">
                         <span className="text-slate-500">Risk Score:</span>
@@ -667,19 +686,20 @@ export const AdminDashboardPage: React.FC = () => {
                               : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           }`}
                         >
-                          {(((selectedDetail.customer?.risk_score ?? 0) * 100)).toFixed(0)}%
+                          {((selectedDetail.customer?.risk_score ?? 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Return Rate:</span>
                         <span className="font-medium text-slate-800">
-                          {(((selectedDetail.customer?.return_rate ?? 0) * 100)).toFixed(1)}%
+                          {((selectedDetail.customer?.return_rate ?? 0) * 100).toFixed(1)}%
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Lifetime Spent:</span>
                         <span className="font-medium text-slate-800">
-                          ${(selectedDetail.customer?.total_spent ?? 0).toFixed(2)} ({selectedDetail.customer?.orders_count ?? 0} orders)
+                          ${(selectedDetail.customer?.total_spent ?? 0).toFixed(2)} (
+                          {selectedDetail.customer?.orders_count ?? 0} orders)
                         </span>
                       </div>
                     </div>
@@ -703,9 +723,13 @@ export const AdminDashboardPage: React.FC = () => {
                     </h3>
                     <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 text-xs space-y-3">
                       <div>
-                        <span className="text-indigo-900 font-bold block mb-1">Generated Justification:</span>
+                        <span className="text-indigo-900 font-bold block mb-1">
+                          Generated Justification:
+                        </span>
                         <p className="text-slate-700 leading-relaxed">
-                          {selectedDetail.decision_reason || selectedDetail.ai_reasoning || 'No specific reasoning provided.'}
+                          {selectedDetail.decision_reason ||
+                            selectedDetail.ai_reasoning ||
+                            'No specific reasoning provided.'}
                         </p>
                       </div>
 
@@ -732,29 +756,40 @@ export const AdminDashboardPage: React.FC = () => {
                           <div className="flex items-start space-x-2">
                             <span className="text-slate-500 min-w-24">Rules:</span>
                             <div className="flex flex-wrap gap-1">
-                              {(selectedDetail.policy_checks as any).matched_rules.map((rule: string) => (
-                                <span key={rule} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[11px] font-mono text-slate-700">
-                                  {rule}
-                                </span>
-                              ))}
+                              {(selectedDetail.policy_checks as any).matched_rules.map(
+                                (rule: string) => (
+                                  <span
+                                    key={rule}
+                                    className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[11px] font-mono text-slate-700"
+                                  >
+                                    {rule}
+                                  </span>
+                                )
+                              )}
                             </div>
                           </div>
                         )}
-                        {Array.isArray((selectedDetail.policy_checks as any).triggered_red_flags) && (selectedDetail.policy_checks as any).triggered_red_flags.length > 0 && (
-                          <div className="flex items-start space-x-2 pt-1">
-                            <span className="text-rose-600 font-semibold min-w-24 flex items-center space-x-1">
-                              <ShieldAlert className="w-3 h-3" />
-                              <span>Red Flags:</span>
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {(selectedDetail.policy_checks as any).triggered_red_flags.map((flag: string) => (
-                                <span key={flag} className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded text-[11px] font-mono text-rose-700">
-                                  {flag}
-                                </span>
-                              ))}
+                        {Array.isArray((selectedDetail.policy_checks as any).triggered_red_flags) &&
+                          (selectedDetail.policy_checks as any).triggered_red_flags.length > 0 && (
+                            <div className="flex items-start space-x-2 pt-1">
+                              <span className="text-rose-600 font-semibold min-w-24 flex items-center space-x-1">
+                                <ShieldAlert className="w-3 h-3" />
+                                <span>Red Flags:</span>
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {(selectedDetail.policy_checks as any).triggered_red_flags.map(
+                                  (flag: string) => (
+                                    <span
+                                      key={flag}
+                                      className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded text-[11px] font-mono text-rose-700"
+                                    >
+                                      {flag}
+                                    </span>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </div>
                   )}
@@ -818,7 +853,8 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500">
-              Overrides update the automated verdict and record an immutable entry in the compliance audit trail.
+              Overrides update the automated verdict and record an immutable entry in the compliance
+              audit trail.
             </p>
 
             {overrideError && (

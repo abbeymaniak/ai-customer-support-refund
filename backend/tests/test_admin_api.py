@@ -11,9 +11,9 @@ from app.models.refund_request import RefundRequest
 
 
 @pytest.mark.asyncio
-async def test_list_refunds_endpoint(async_client):
+async def test_list_refunds_endpoint(admin_auth_client):
     """Test AC-1: List refunds endpoint returns paginated response envelope."""
-    response = await async_client.get("/api/admin/refunds")
+    response = await admin_auth_client.get("/api/admin/refunds")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -34,26 +34,26 @@ async def test_list_refunds_endpoint(async_client):
 
 
 @pytest.mark.asyncio
-async def test_list_refunds_filtering_by_decision(async_client, db_session):
+async def test_list_refunds_filtering_by_decision(admin_auth_client, db_session):
     """Test AC-1: Filtering by decision status returns matched records."""
     # Query approved
-    res_approved = await async_client.get("/api/admin/refunds?decision=Approved")
+    res_approved = await admin_auth_client.get("/api/admin/refunds?decision=Approved")
     assert res_approved.status_code == 200
     data_approved = res_approved.json()
     for item in data_approved["items"]:
         assert item["decision"].lower() == "approved"
 
     # Query all
-    res_all = await async_client.get("/api/admin/refunds?decision=all")
+    res_all = await admin_auth_client.get("/api/admin/refunds?decision=all")
     assert res_all.status_code == 200
     data_all = res_all.json()
     assert data_all["total"] >= data_approved["total"]
 
 
 @pytest.mark.asyncio
-async def test_list_refunds_search(async_client):
+async def test_list_refunds_search(admin_auth_client):
     """Test AC-1: Keyword search across customer email, name, or order number."""
-    response = await async_client.get("/api/admin/refunds?search=sarah")
+    response = await admin_auth_client.get("/api/admin/refunds?search=sarah")
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) >= 1
@@ -61,36 +61,36 @@ async def test_list_refunds_search(async_client):
 
 
 @pytest.mark.asyncio
-async def test_list_refunds_sorting_and_pagination(async_client):
+async def test_list_refunds_sorting_and_pagination(admin_auth_client):
     """Test AC-1: Sorting by amount and pagination with limit and offset."""
-    res_asc = await async_client.get("/api/admin/refunds?sort_by=amount&sort_order=asc&limit=2&offset=0")
+    res_asc = await admin_auth_client.get("/api/admin/refunds?sort_by=amount&sort_order=asc&limit=2&offset=0")
     assert res_asc.status_code == 200
     data_asc = res_asc.json()
     assert len(data_asc["items"]) <= 2
 
-    res_desc = await async_client.get("/api/admin/refunds?sort_by=amount&sort_order=desc&limit=2&offset=0")
+    res_desc = await admin_auth_client.get("/api/admin/refunds?sort_by=amount&sort_order=desc&limit=2&offset=0")
     assert res_desc.status_code == 200
     data_desc = res_desc.json()
     assert len(data_desc["items"]) <= 2
 
 
 @pytest.mark.asyncio
-async def test_list_refunds_date_filtering(async_client):
+async def test_list_refunds_date_filtering(admin_auth_client):
     """Test AC-1: Date boundary filtering with start_date and end_date."""
     now = datetime.utcnow()
     past_date = (now - timedelta(days=365)).isoformat()
     future_date = (now + timedelta(days=1)).isoformat()
 
-    response = await async_client.get(f"/api/admin/refunds?start_date={past_date}&end_date={future_date}")
+    response = await admin_auth_client.get(f"/api/admin/refunds?start_date={past_date}&end_date={future_date}")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
 
 
 @pytest.mark.asyncio
-async def test_get_refund_stats(async_client):
+async def test_get_refund_stats(admin_auth_client):
     """Test AC-2: Executive KPI metrics endpoint returns operational aggregations."""
-    response = await async_client.get("/api/admin/stats")
+    response = await admin_auth_client.get("/api/admin/stats")
     assert response.status_code == 200
     data = response.json()
     assert "total_requests" in data
@@ -106,10 +106,10 @@ async def test_get_refund_stats(async_client):
 
 
 @pytest.mark.asyncio
-async def test_get_refund_detail_success(async_client):
+async def test_get_refund_detail_success(admin_auth_client):
     """Test AC-3: Retrieve full claim detail with customer profile and audit history."""
     seeded_id = "21111111-1111-1111-1111-111111111101"
-    response = await async_client.get(f"/api/admin/refunds/{seeded_id}")
+    response = await admin_auth_client.get(f"/api/admin/refunds/{seeded_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == seeded_id
@@ -122,16 +122,16 @@ async def test_get_refund_detail_success(async_client):
 
 
 @pytest.mark.asyncio
-async def test_get_refund_detail_not_found(async_client):
+async def test_get_refund_detail_not_found(admin_auth_client):
     """Test AC-3: Claim not found returns HTTP 404."""
     random_id = str(uuid.uuid4())
-    response = await async_client.get(f"/api/admin/refunds/{random_id}")
+    response = await admin_auth_client.get(f"/api/admin/refunds/{random_id}")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_override_decision_validation(async_client):
+async def test_override_decision_validation(admin_auth_client):
     """Test AC-4: Reason is mandatory and must have minimum length of 5 characters."""
     seeded_id = "21111111-1111-1111-1111-111111111101"
 
@@ -141,7 +141,7 @@ async def test_override_decision_validation(async_client):
         "reason": "bad",
         "actor": "lead@store.com",
     }
-    response = await async_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload)
+    response = await admin_auth_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload)
     assert response.status_code == 422
 
     # Whitespace only reason
@@ -150,12 +150,12 @@ async def test_override_decision_validation(async_client):
         "reason": "     ",
         "actor": "lead@store.com",
     }
-    response_ws = await async_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload_whitespace)
+    response_ws = await admin_auth_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload_whitespace)
     assert response_ws.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_override_decision_success(async_client, db_session):
+async def test_override_decision_success(admin_auth_client, db_session):
     """Test AC-4: Valid override updates claim decision, marks human_override, and logs audit."""
     # Create a fresh temporary refund request to override
     new_req = RefundRequest(
@@ -179,7 +179,7 @@ async def test_override_decision_success(async_client, db_session):
         "reason": "Supervisor courtesy approved due to high customer lifetime value.",
         "actor": "supervisor@store.com",
     }
-    response = await async_client.post(f"/api/admin/refunds/{new_req.id}/override", json=override_payload)
+    response = await admin_auth_client.post(f"/api/admin/refunds/{new_req.id}/override", json=override_payload)
     assert response.status_code == 200
     data = response.json()
     assert data["decision"] == "Approved"
@@ -202,7 +202,7 @@ async def test_override_decision_success(async_client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_override_decision_not_found(async_client):
+async def test_override_decision_not_found(admin_auth_client):
     """Test AC-4: Overriding a non-existent claim returns HTTP 404."""
     random_id = str(uuid.uuid4())
     payload = {
@@ -210,14 +210,14 @@ async def test_override_decision_not_found(async_client):
         "reason": "Legitimate justification for non-existent claim.",
         "actor": "supervisor@store.com",
     }
-    response = await async_client.post(f"/api/admin/refunds/{random_id}/override", json=payload)
+    response = await admin_auth_client.post(f"/api/admin/refunds/{random_id}/override", json=payload)
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_audit_logs_query(async_client):
+async def test_audit_logs_query(admin_auth_client):
     """Test querying audit logs endpoint."""
-    response = await async_client.get("/api/admin/audit-logs")
+    response = await admin_auth_client.get("/api/admin/audit-logs")
     assert response.status_code == 200
     logs = response.json()
     assert isinstance(logs, list)

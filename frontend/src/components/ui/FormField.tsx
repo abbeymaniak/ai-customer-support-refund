@@ -1,5 +1,5 @@
-import React from "react";
-import { cn } from "../../lib/utils";
+import React from 'react';
+import { cn } from '../../lib/utils';
 
 export interface FormFieldProps {
   id: string;
@@ -22,22 +22,36 @@ export const FormField: React.FC<FormFieldProps> = ({
 }) => {
   const helperId = helperText ? `${id}-helper` : undefined;
   const errorId = error ? `${id}-error` : undefined;
-  const describedBy = [errorId, helperId].filter(Boolean).join(" ") || undefined;
+  const describedBy = [errorId, helperId].filter(Boolean).join(' ') || undefined;
 
   // Clone child input to inject id, aria-describedby, and aria-invalid automatically if it's a valid React element
   const enhancedChild = React.isValidElement(children)
-    ? React.cloneElement(children as React.ReactElement<{ id?: string; "aria-describedby"?: string; hasError?: boolean }>, {
-        id,
-        "aria-describedby": describedBy,
-        hasError: Boolean(error),
-      })
+    ? React.cloneElement(
+        children as React.ReactElement<{
+          id?: string;
+          'aria-describedby'?: string;
+          hasError?: boolean;
+        }>,
+        {
+          id,
+          'aria-describedby': describedBy,
+          hasError: Boolean(error),
+        }
+      )
     : children;
 
   return (
-    <div className={cn("flex flex-col gap-1.5 text-left", className)}>
-      <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wider text-zinc-700 select-none">
+    <div className={cn('flex flex-col gap-1.5 text-left', className)}>
+      <label
+        htmlFor={id}
+        className="text-xs font-semibold uppercase tracking-wider text-zinc-700 select-none"
+      >
         {label}
-        {required && <span className="text-rose-600 ml-1" aria-hidden="true">*</span>}
+        {required && (
+          <span className="text-rose-600 ml-1" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
       {enhancedChild}
       {error && (
