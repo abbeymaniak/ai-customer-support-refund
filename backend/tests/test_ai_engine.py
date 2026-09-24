@@ -194,3 +194,43 @@ async def test_ai_engine_mock_mode_evaluation():
     assert res["telemetry"]["provider"] == "mock"
     assert res["telemetry"]["latency_ms"] >= 0
     assert "tokens" in res["telemetry"]
+
+
+@pytest.mark.asyncio
+async def test_ai_engine_resolve_active_provider_fallback_to_defaults():
+    """Test AC-4: Engine resolves system defaults when db is not provided."""
+    engine = AIDecisionEngine(db=None)
+    resolved = await engine._resolve_active_provider()
+    assert "llm" in resolved
+    assert "llm_model" in resolved
+    assert resolved["llm"] in ("ollama", "openai")
+
+
+@pytest.mark.asyncio
+async def test_ai_engine_raises_provider_error_on_missing_api_key():
+    """Test AC-5: Cloud provider without configured API key raises AIProviderError for direct human escalation."""
+    from unittest.mock import AsyncMock, MagicMock
+    from app.ai.engine import AIProviderError
+
+    engine = AIDecisionEngine()
+    engine.primary_model = "gemini/gemini-1.5-flash"
+
+    # Mock _resolve_active_provider returning gemini without api_key
+    engine._resolve_active_provider = AsyncMock(return_value={
+        "llm": "gemini",
+        "llm_model": "gemini-1.5-flash",
+        "api_key": None,
+        "api_base": None,
+        "temperature": 0.0,
+        "timeout_seconds": 3.0,
+    })
+
+    with pytest.raises(AIProviderError) as exc_info:
+        await engine.evaluate_refund_request(
+            customer_info={"name": "Alice"},
+            order_info={"order_number": "ORD-200"},
+            request_info={"product_name": "Keyboard", "price": 80.0},
+            policy_info={"rules": []},
+        )
+
+    assert "escalated to human review" in str(exc_info.value).lower()
