@@ -143,7 +143,9 @@ describe('RequestDetailPage Component', () => {
     const markup = renderWithDetail('21111111-1111-1111-1111-111111111101', sampleClaim);
 
     expect(markup).toContain('AI Reasoning Chain &amp; Guardrails');
-    expect(markup).toContain('Approved: Customer is low risk and order is well within the 30-day window.');
+    expect(markup).toContain(
+      'Approved: Customer is low risk and order is well within the 30-day window.'
+    );
     expect(markup).toContain('RULE_RETURN_WINDOW');
     expect(markup).toContain('RULE_DEFECTIVE_REPLACEMENT');
     expect(markup).toContain('Refund Policy § 1.1');

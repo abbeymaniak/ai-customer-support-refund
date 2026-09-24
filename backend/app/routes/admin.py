@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies.auth import get_current_admin_user, require_admin
+from app.models.auth import AdminUser
 from app.schemas.admin import (
     AuditLogResponse,
     RefundAdminDetailResponse,
@@ -35,6 +37,7 @@ async def list_refund_requests(
     sort_order: str = Query(default="desc", description="Sort direction: asc or desc"),
     limit: int = Query(default=20, ge=1, le=100, description="Page record limit"),
     offset: int = Query(default=0, ge=0, description="Page record offset"),
+    current_user: AdminUser = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> RefundAdminListResponse:
     admin_service = AdminService(db)
@@ -58,6 +61,7 @@ async def list_refund_requests(
     description="Calculate aggregate volume, approval percentage, overrides, and total refunded amount.",
 )
 async def get_refund_stats(
+    current_user: AdminUser = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> RefundStatsResponse:
     admin_service = AdminService(db)
@@ -73,6 +77,7 @@ async def get_refund_stats(
 )
 async def get_refund_detail(
     id: uuid.UUID,
+    current_user: AdminUser = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> RefundAdminDetailResponse:
     admin_service = AdminService(db)
@@ -95,8 +100,11 @@ async def get_refund_detail(
 async def override_refund_decision(
     id: uuid.UUID,
     payload: RefundOverridePayload,
+    current_user: AdminUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> RefundAdminDetailResponse:
+    if not payload.actor:
+        payload.actor = current_user.email
     admin_service = AdminService(db)
     updated = await admin_service.override_decision(id, payload)
     if not updated:
@@ -117,7 +125,9 @@ async def override_refund_decision(
 async def list_audit_logs(
     refund_id: uuid.UUID | None = Query(default=None, description="Optional refund claim UUID"),
     limit: int = Query(default=50, ge=1, le=100, description="Log record limit"),
+    current_user: AdminUser = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AuditLogResponse]:
     admin_service = AdminService(db)
     return await admin_service.get_audit_logs(refund_id=refund_id, limit=limit)
+

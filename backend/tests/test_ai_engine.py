@@ -209,7 +209,8 @@ async def test_ai_engine_resolve_active_provider_fallback_to_defaults():
 @pytest.mark.asyncio
 async def test_ai_engine_raises_provider_error_on_missing_api_key():
     """Test AC-5: Cloud provider without configured API key raises AIProviderError for direct human escalation."""
-    from unittest.mock import AsyncMock, MagicMock
+    from unittest.mock import AsyncMock
+
     from app.ai.engine import AIProviderError
 
     engine = AIDecisionEngine()

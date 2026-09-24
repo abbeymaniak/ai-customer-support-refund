@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     postgres_password: str = "refunds_pass"
     postgres_db: str = "refunds_db"
 
+    # Authentication & JWT
+    jwt_secret_key: str = "dev_secret_key_change_in_production_jwt_987654321"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: str = "lax"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

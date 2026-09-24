@@ -207,3 +207,22 @@ export interface RefundListParams {
   offset?: number;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'agent' | string;
+  is_active: boolean;
+  last_login_at?: string | null;
+  created_at: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthStatusResponse {
+  status: 'ok' | 'refreshed' | 'logged_out';
+  message?: string;
+}

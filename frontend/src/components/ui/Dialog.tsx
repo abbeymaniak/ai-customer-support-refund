@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { X } from "lucide-react";
-import { cn } from "../../lib/utils";
+import React, { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export interface DialogProps {
   isOpen: boolean;
@@ -54,16 +54,18 @@ export const Dialog: React.FC<DialogProps> = ({
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       className={cn(
-        "m-auto p-0 rounded-xl bg-white border border-zinc-200 shadow-2xl overflow-hidden max-w-lg w-full text-zinc-900",
-        "backdrop:bg-black/50 backdrop:backdrop-blur-xs",
-        className,
+        'm-auto p-0 rounded-xl bg-white border border-zinc-200 shadow-2xl overflow-hidden max-w-lg w-full text-zinc-900',
+        'backdrop:bg-black/50 backdrop:backdrop-blur-xs',
+        className
       )}
     >
       <div className="flex flex-col">
         {(title || description) && (
           <div className="flex items-start justify-between p-5 border-b border-zinc-100">
             <div className="flex flex-col gap-1">
-              {title && <h2 className="text-lg font-semibold tracking-tight text-zinc-900">{title}</h2>}
+              {title && (
+                <h2 className="text-lg font-semibold tracking-tight text-zinc-900">{title}</h2>
+              )}
               {description && <p className="text-sm text-zinc-500">{description}</p>}
             </div>
             <button

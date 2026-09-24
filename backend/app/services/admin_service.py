@@ -199,7 +199,7 @@ class AdminService:
             return None
 
         # Sort audit logs chronologically
-        sorted_logs = sorted(record.audit_logs, key=lambda l: l.timestamp)
+        sorted_logs = sorted(record.audit_logs, key=lambda log_entry: log_entry.timestamp)
 
         response = RefundAdminDetailResponse.model_validate(record)
         response.audit_logs = [AuditLogResponse.model_validate(log) for log in sorted_logs]

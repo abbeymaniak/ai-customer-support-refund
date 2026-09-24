@@ -24,7 +24,9 @@ export const RequestDetailPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [overrideModalOpen, setOverrideModalOpen] = useState<boolean>(false);
-  const [overrideDecision, setOverrideDecision] = useState<'Approved' | 'Denied' | 'Escalated'>('Approved');
+  const [overrideDecision, setOverrideDecision] = useState<'Approved' | 'Denied' | 'Escalated'>(
+    'Approved'
+  );
   const [overrideReason, setOverrideReason] = useState<string>('');
   const [overrideError, setOverrideError] = useState<string | null>(null);
 
@@ -100,7 +102,9 @@ export const RequestDetailPage: React.FC = () => {
   }
 
   const logs = req.audit_logs || [];
-  const telemetry = (req.llm_audit_data?.telemetry || (req as any).llm_metadata?.telemetry || {}) as Record<string, any>;
+  const telemetry = (req.llm_audit_data?.telemetry ||
+    (req as any).llm_metadata?.telemetry ||
+    {}) as Record<string, any>;
   const policyChecks = req.policy_checks as Record<string, any> | undefined;
 
   return (
@@ -130,9 +134,13 @@ export const RequestDetailPage: React.FC = () => {
                       : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}
               >
-                {req.decision.toLowerCase() === 'approved' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                {req.decision.toLowerCase() === 'approved' && (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
                 {req.decision.toLowerCase() === 'denied' && <XCircle className="w-3.5 h-3.5" />}
-                {req.decision.toLowerCase() === 'escalated' && <AlertTriangle className="w-3.5 h-3.5" />}
+                {req.decision.toLowerCase() === 'escalated' && (
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                )}
                 <span className="capitalize">{req.decision}</span>
               </span>
               {req.human_override && (
@@ -142,14 +150,19 @@ export const RequestDetailPage: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Submitted on {new Date(req.created_at).toLocaleString()} • Last updated {new Date(req.updated_at).toLocaleString()}
+              Submitted on {new Date(req.created_at).toLocaleString()} • Last updated{' '}
+              {new Date(req.updated_at).toLocaleString()}
             </p>
           </div>
 
           <div className="flex items-center space-x-4">
             <div className="text-right">
-              <span className="text-xs text-slate-500 uppercase block font-medium">Claim Amount</span>
-              <strong className="text-2xl font-black text-slate-900">${req.amount.toFixed(2)}</strong>
+              <span className="text-xs text-slate-500 uppercase block font-medium">
+                Claim Amount
+              </span>
+              <strong className="text-2xl font-black text-slate-900">
+                ${req.amount.toFixed(2)}
+              </strong>
             </div>
             <button
               onClick={handleOpenOverride}
@@ -185,7 +198,9 @@ export const RequestDetailPage: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Name</span>
-              <span className="font-semibold text-slate-900">{req.customer?.name || 'Customer'}</span>
+              <span className="font-semibold text-slate-900">
+                {req.customer?.name || 'Customer'}
+              </span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Email</span>
@@ -200,13 +215,13 @@ export const RequestDetailPage: React.FC = () => {
                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 }`}
               >
-                {(((req.customer?.risk_score ?? 0) * 100)).toFixed(0)}%
+                {((req.customer?.risk_score ?? 0) * 100).toFixed(0)}%
               </span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Return Rate</span>
               <span className="font-medium text-slate-900">
-                {(((req.customer?.return_rate ?? 0) * 100)).toFixed(1)}%
+                {((req.customer?.return_rate ?? 0) * 100).toFixed(1)}%
               </span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
@@ -218,7 +233,8 @@ export const RequestDetailPage: React.FC = () => {
             <div className="flex justify-between py-1">
               <span className="text-slate-500">Order Count</span>
               <span className="font-medium text-slate-900">
-                {req.customer?.orders_count ?? 0} orders ({req.customer?.refunds_count ?? 0} refunds)
+                {req.customer?.orders_count ?? 0} orders ({req.customer?.refunds_count ?? 0}{' '}
+                refunds)
               </span>
             </div>
           </div>
@@ -233,7 +249,9 @@ export const RequestDetailPage: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Order Number</span>
-              <span className="font-mono font-semibold text-slate-900">{req.order?.order_number || '—'}</span>
+              <span className="font-mono font-semibold text-slate-900">
+                {req.order?.order_number || '—'}
+              </span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Order Date</span>
@@ -245,7 +263,9 @@ export const RequestDetailPage: React.FC = () => {
               <span className="text-slate-500">Delivery Date</span>
               <span className="text-slate-700">
                 {req.order?.delivery_date || req.order?.delivered_date
-                  ? new Date((req.order.delivery_date || req.order.delivered_date)!).toLocaleDateString()
+                  ? new Date(
+                      (req.order.delivery_date || req.order.delivered_date)!
+                    ).toLocaleDateString()
                   : 'Pending'}
               </span>
             </div>
@@ -257,7 +277,9 @@ export const RequestDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between py-1">
               <span className="text-slate-500">Order Status</span>
-              <span className="font-medium capitalize text-emerald-700">{req.order?.status || 'delivered'}</span>
+              <span className="font-medium capitalize text-emerald-700">
+                {req.order?.status || 'delivered'}
+              </span>
             </div>
           </div>
         </div>
@@ -275,7 +297,9 @@ export const RequestDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Reason</span>
-              <span className="capitalize font-medium text-slate-900">{req.reason_category.replace(/_/g, ' ')}</span>
+              <span className="capitalize font-medium text-slate-900">
+                {req.reason_category.replace(/_/g, ' ')}
+              </span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Currency</span>
@@ -312,9 +336,13 @@ export const RequestDetailPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {req.order.items.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3 font-medium text-slate-900">{item.name || item.product_name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {item.name || item.product_name}
+                    </td>
                     <td className="px-4 py-3 capitalize">{item.category.replace(/_/g, ' ')}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-900">${item.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">
+                      ${item.price.toFixed(2)}
+                    </td>
                     <td className="px-4 py-3">{item.quantity || 1}</td>
                     <td className="px-4 py-3">
                       {item.is_final_sale ? (
@@ -342,15 +370,21 @@ export const RequestDetailPage: React.FC = () => {
           </h2>
           <div className="space-y-4 text-xs">
             <div>
-              <span className="text-slate-500 block mb-1 font-semibold uppercase">Evaluated Rationale:</span>
+              <span className="text-slate-500 block mb-1 font-semibold uppercase">
+                Evaluated Rationale:
+              </span>
               <p className="text-sm text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200 leading-relaxed">
-                {req.decision_reason || req.ai_reasoning || 'Evaluated strictly against refund policy thresholds.'}
+                {req.decision_reason ||
+                  req.ai_reasoning ||
+                  'Evaluated strictly against refund policy thresholds.'}
               </p>
             </div>
 
             {policyChecks && (
               <div className="space-y-3 pt-2">
-                <span className="text-slate-500 block font-semibold uppercase">Policy Verification:</span>
+                <span className="text-slate-500 block font-semibold uppercase">
+                  Policy Verification:
+                </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
                     <span className="font-semibold text-slate-700 flex items-center space-x-1">
@@ -358,9 +392,13 @@ export const RequestDetailPage: React.FC = () => {
                       <span>Matched Rules</span>
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {Array.isArray(policyChecks.matched_rules) && policyChecks.matched_rules.length > 0 ? (
+                      {Array.isArray(policyChecks.matched_rules) &&
+                      policyChecks.matched_rules.length > 0 ? (
                         policyChecks.matched_rules.map((r: string) => (
-                          <span key={r} className="px-2 py-0.5 bg-white border border-slate-200 rounded font-mono text-[11px] text-slate-700">
+                          <span
+                            key={r}
+                            className="px-2 py-0.5 bg-white border border-slate-200 rounded font-mono text-[11px] text-slate-700"
+                          >
                             {r}
                           </span>
                         ))
@@ -376,9 +414,13 @@ export const RequestDetailPage: React.FC = () => {
                       <span>Triggered Red Flags</span>
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {Array.isArray(policyChecks.triggered_red_flags) && policyChecks.triggered_red_flags.length > 0 ? (
+                      {Array.isArray(policyChecks.triggered_red_flags) &&
+                      policyChecks.triggered_red_flags.length > 0 ? (
                         policyChecks.triggered_red_flags.map((f: string) => (
-                          <span key={f} className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded font-mono text-[11px] text-rose-700 font-medium">
+                          <span
+                            key={f}
+                            className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded font-mono text-[11px] text-rose-700 font-medium"
+                          >
                             {f}
                           </span>
                         ))
@@ -419,9 +461,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Active Model</span>
-              <span className="font-mono text-slate-700">
-                {telemetry.model || 'gpt-4o-mini'}
-              </span>
+              <span className="font-mono text-slate-700">{telemetry.model || 'gpt-4o-mini'}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Latency</span>
@@ -431,15 +471,11 @@ export const RequestDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Prompt Tokens</span>
-              <span className="font-mono text-slate-700">
-                {telemetry.prompt_tokens ?? 420}
-              </span>
+              <span className="font-mono text-slate-700">{telemetry.prompt_tokens ?? 420}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500">Completion Tokens</span>
-              <span className="font-mono text-slate-700">
-                {telemetry.completion_tokens ?? 85}
-              </span>
+              <span className="font-mono text-slate-700">{telemetry.completion_tokens ?? 85}</span>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-slate-500">Guardrail Enforced</span>
@@ -457,7 +493,9 @@ export const RequestDetailPage: React.FC = () => {
         </h2>
         <div className="space-y-4">
           {logs.length === 0 ? (
-            <p className="text-xs text-slate-400">No additional audit events recorded for this claim.</p>
+            <p className="text-xs text-slate-400">
+              No additional audit events recorded for this claim.
+            </p>
           ) : (
             logs.map((log) => (
               <div

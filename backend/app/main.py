@@ -1,16 +1,33 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.core.logging import setup_logging
-from app.routes import admin, admin_settings, customers, health, refunds
+from app.database import async_session
+from app.routes import admin, admin_settings, auth, customers, health, refunds
+from app.services.auth_service import AuthService
 
 setup_logging()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan ensuring default test credentials exist."""
+    async with async_session() as session:
+        try:
+            await AuthService.ensure_seed_users(session)
+        except Exception:
+            pass
+    yield
+
 
 app = FastAPI(
     title="AI Customer Support Refund System",
     description="AI-powered refund request processing with policy enforcement and audit logging",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -25,9 +42,11 @@ app.add_middleware(
 
 # Register routers
 app.include_router(health.router, tags=["Health"])
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(refunds.router, prefix="/api/refunds", tags=["Refunds"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(
     admin_settings.router, prefix="/api/admin/settings", tags=["Admin Settings"]
 )
+

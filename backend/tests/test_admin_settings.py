@@ -14,10 +14,10 @@ def test_mask_api_key_helper():
 
 
 @pytest.mark.asyncio
-async def test_list_and_get_active_llm_providers(async_client):
+async def test_list_and_get_active_llm_providers(admin_auth_client):
     """Test AC-1, AC-2: List all providers and retrieve the active provider."""
     # 1. List all providers
-    res = await async_client.get("/api/admin/settings/llm")
+    res = await admin_auth_client.get("/api/admin/settings/llm")
     assert res.status_code == 200
     providers = res.json()
     assert len(providers) >= 3
@@ -27,7 +27,7 @@ async def test_list_and_get_active_llm_providers(async_client):
     assert "gemini" in names
 
     # 2. Get active provider
-    active_res = await async_client.get("/api/admin/settings/llm/active")
+    active_res = await admin_auth_client.get("/api/admin/settings/llm/active")
     assert active_res.status_code == 200
     active_data = active_res.json()
     assert active_data["is_active"] is True
@@ -35,10 +35,10 @@ async def test_list_and_get_active_llm_providers(async_client):
 
 
 @pytest.mark.asyncio
-async def test_update_and_activate_provider(async_client):
+async def test_update_and_activate_provider(admin_auth_client):
     """Test AC-2: Update provider credentials and activate provider."""
     # 1. Update OpenAI settings with a test key
-    update_res = await async_client.put(
+    update_res = await admin_auth_client.put(
         "/api/admin/settings/llm/openai",
         json={
             "llm_model": "gpt-4o",
@@ -55,26 +55,26 @@ async def test_update_and_activate_provider(async_client):
     assert updated["temperature"] == 0.2
 
     # 2. Activate OpenAI
-    act_res = await async_client.post("/api/admin/settings/llm/openai/activate")
+    act_res = await admin_auth_client.post("/api/admin/settings/llm/openai/activate")
     assert act_res.status_code == 200
     act_data = act_res.json()
     assert act_data["llm"] == "openai"
     assert act_data["is_active"] is True
 
     # 3. Confirm Ollama is now deactivated
-    list_res = await async_client.get("/api/admin/settings/llm")
+    list_res = await admin_auth_client.get("/api/admin/settings/llm")
     providers = list_res.json()
     ollama = next(p for p in providers if p["llm"] == "ollama")
     assert ollama["is_active"] is False
 
     # Switch back to ollama for clean environment state
-    await async_client.post("/api/admin/settings/llm/ollama/activate")
+    await admin_auth_client.post("/api/admin/settings/llm/ollama/activate")
 
 
 @pytest.mark.asyncio
-async def test_test_probe_endpoint(async_client):
+async def test_test_probe_endpoint(admin_auth_client):
     """Test AC-3: Connection test probe returns structured status and latency."""
-    probe_res = await async_client.post(
+    probe_res = await admin_auth_client.post(
         "/api/admin/settings/llm/test",
         json={
             "llm": "ollama",
@@ -90,9 +90,9 @@ async def test_test_probe_endpoint(async_client):
 
 
 @pytest.mark.asyncio
-async def test_update_unknown_provider_returns_404(async_client):
+async def test_update_unknown_provider_returns_404(admin_auth_client):
     """Test updating a non existent provider returns HTTP 404."""
-    res = await async_client.put(
+    res = await admin_auth_client.put(
         "/api/admin/settings/llm/nonexistent_llm",
         json={"llm_model": "test-model"},
     )
@@ -101,25 +101,25 @@ async def test_update_unknown_provider_returns_404(async_client):
 
 
 @pytest.mark.asyncio
-async def test_activate_unknown_provider_returns_404(async_client):
+async def test_activate_unknown_provider_returns_404(admin_auth_client):
     """Test activating a non existent provider returns HTTP 404."""
-    res = await async_client.post("/api/admin/settings/llm/unknown_vendor/activate")
+    res = await admin_auth_client.post("/api/admin/settings/llm/unknown_vendor/activate")
     assert res.status_code == 404
     assert "not found" in res.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_update_provider_validation_bounds(async_client):
+async def test_update_provider_validation_bounds(admin_auth_client):
     """Test temperature and timeout boundaries return HTTP 422 on invalid ranges."""
     # Temperature over 2.0
-    bad_temp_res = await async_client.put(
+    bad_temp_res = await admin_auth_client.put(
         "/api/admin/settings/llm/ollama",
         json={"temperature": 2.5},
     )
     assert bad_temp_res.status_code == 422
 
     # Timeout under 1.0s
-    bad_timeout_res = await async_client.put(
+    bad_timeout_res = await admin_auth_client.put(
         "/api/admin/settings/llm/ollama",
         json={"timeout_seconds": 0.2},
     )
@@ -127,16 +127,16 @@ async def test_update_provider_validation_bounds(async_client):
 
 
 @pytest.mark.asyncio
-async def test_update_provider_retains_existing_key_when_omitted(async_client):
+async def test_update_provider_retains_existing_key_when_omitted(admin_auth_client):
     """Test updating other fields without api_key retains previous key."""
     # First set a key
-    await async_client.put(
+    await admin_auth_client.put(
         "/api/admin/settings/llm/openai",
         json={"api_key": "sk-secret-sample-12345678"},
     )
 
     # Now update only temperature without sending api_key
-    update_res = await async_client.put(
+    update_res = await admin_auth_client.put(
         "/api/admin/settings/llm/openai",
         json={"temperature": 0.05},
     )

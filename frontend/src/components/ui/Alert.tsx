@@ -1,8 +1,8 @@
-import React from "react";
-import { Info, CheckCircle2, AlertTriangle, AlertOctagon, X } from "lucide-react";
-import { cn } from "../../lib/utils";
+import React from 'react';
+import { Info, CheckCircle2, AlertTriangle, AlertOctagon, X } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
-export type AlertVariant = "info" | "success" | "warning" | "error";
+export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: AlertVariant;
@@ -12,25 +12,25 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles: Record<AlertVariant, { container: string; icon: React.ReactNode }> = {
   info: {
-    container: "bg-zinc-50 border-zinc-200 text-zinc-900",
+    container: 'bg-zinc-50 border-zinc-200 text-zinc-900',
     icon: <Info className="h-5 w-5 text-zinc-600 shrink-0" aria-hidden="true" />,
   },
   success: {
-    container: "bg-emerald-50 border-emerald-200 text-emerald-950",
+    container: 'bg-emerald-50 border-emerald-200 text-emerald-950',
     icon: <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" aria-hidden="true" />,
   },
   warning: {
-    container: "bg-amber-50 border-amber-200 text-amber-950",
+    container: 'bg-amber-50 border-amber-200 text-amber-950',
     icon: <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" aria-hidden="true" />,
   },
   error: {
-    container: "bg-rose-50 border-rose-200 text-rose-950",
+    container: 'bg-rose-50 border-rose-200 text-rose-950',
     icon: <AlertOctagon className="h-5 w-5 text-rose-600 shrink-0" aria-hidden="true" />,
   },
 };
 
 export const Alert: React.FC<AlertProps> = ({
-  variant = "info",
+  variant = 'info',
   title,
   onClose,
   className,
@@ -42,7 +42,11 @@ export const Alert: React.FC<AlertProps> = ({
   return (
     <div
       role="alert"
-      className={cn("flex items-start gap-3 p-4 rounded-lg border text-sm shadow-2xs", container, className)}
+      className={cn(
+        'flex items-start gap-3 p-4 rounded-lg border text-sm shadow-2xs',
+        container,
+        className
+      )}
       {...props}
     >
       {icon}

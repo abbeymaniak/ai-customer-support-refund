@@ -123,8 +123,8 @@ export const RefundRequestPage: React.FC = () => {
           Customer Support Refund Portal
         </h1>
         <p className="text-slate-600 text-sm sm:text-base">
-          Submit and evaluate refund claims in seconds with our transparent, policy guided artificial
-          intelligence assistant.
+          Submit and evaluate refund claims in seconds with our transparent, policy guided
+          artificial intelligence assistant.
         </p>
       </div>
 
@@ -404,7 +404,9 @@ export const RefundRequestPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span>Submit Refund Claim (${(selectedItem.price * quantity).toFixed(2)})</span>
+                        <span>
+                          Submit Refund Claim (${(selectedItem.price * quantity).toFixed(2)})
+                        </span>
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}

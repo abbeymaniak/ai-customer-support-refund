@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies.auth import require_admin
 from app.schemas.llm_setting import (
     LLMProviderResponse,
     LLMProviderUpdatePayload,
@@ -12,7 +13,7 @@ from app.schemas.llm_setting import (
 )
 from app.services.llm_settings_service import LLMSettingsService, provider_to_response
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 @router.get(
