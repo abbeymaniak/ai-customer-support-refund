@@ -65,4 +65,17 @@ describe('RefundRequestPage Component', () => {
     expect(markup).toContain('Quick Load Test Persona (Evaluation Scenarios)');
     expect(markup).toContain('David Miller');
   });
+
+  it('renders input boundaries and guidance for customer claims (covers: AC-2, AC-7)', () => {
+    const markup = renderWithClient(<RefundRequestPage />);
+
+    // Step 1 boundary and email input format requirement
+    expect(markup).toContain('Step 1: Customer Account');
+    expect(markup).toContain('type="email"');
+    expect(markup).toContain('Enter customer email address...');
+
+    // Persona selection boundaries for quick testing
+    expect(markup).toContain('Sarah Jenkins (Low Risk, $3.2k Spent)');
+    expect(markup).toContain('Marcus Vance (High Risk 60% Return)');
+  });
 });
