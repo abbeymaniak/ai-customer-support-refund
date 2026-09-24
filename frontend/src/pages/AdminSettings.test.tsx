@@ -109,4 +109,39 @@ describe('AdminSettingsPage Component', () => {
 
     expect(markup).toContain('Current: sk-...4321');
   });
+
+  it('renders parameter inputs for temperature and timeout thresholds', () => {
+    const markup = renderWithProviders();
+
+    expect(markup).toContain('Temperature');
+    expect(markup).toContain('Timeout (s)');
+    expect(markup).toContain('step="0.05"');
+    expect(markup).toContain('step="5"');
+  });
+
+  it('renders loading state when provider data is pending', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    // empty client without preloaded data
+    const markup = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <AdminSettingsPage />
+      </QueryClientProvider>
+    );
+
+    expect(markup).toContain('Loading provider settings...');
+  });
+
+  it('accessibility check: inputs and action buttons carry descriptive titles and types', () => {
+    const markup = renderWithProviders();
+
+    expect(markup).toContain('type="text"');
+    expect(markup).toContain('type="password"');
+    expect(markup).toContain('type="number"');
+    expect(markup).toContain('Refresh');
+    expect(markup).toContain('Test Connection');
+    expect(markup).toContain('Save Settings');
+  });
 });
+

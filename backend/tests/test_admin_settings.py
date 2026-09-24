@@ -87,3 +87,61 @@ async def test_test_probe_endpoint(async_client):
     assert probe_data["status"] == "offline"
     assert probe_data["error"] is not None
     assert "Failed to communicate" in probe_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_update_unknown_provider_returns_404(async_client):
+    """Test updating a non existent provider returns HTTP 404."""
+    res = await async_client.put(
+        "/api/admin/settings/llm/nonexistent_llm",
+        json={"llm_model": "test-model"},
+    )
+    assert res.status_code == 404
+    assert "not found" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_activate_unknown_provider_returns_404(async_client):
+    """Test activating a non existent provider returns HTTP 404."""
+    res = await async_client.post("/api/admin/settings/llm/unknown_vendor/activate")
+    assert res.status_code == 404
+    assert "not found" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_provider_validation_bounds(async_client):
+    """Test temperature and timeout boundaries return HTTP 422 on invalid ranges."""
+    # Temperature over 2.0
+    bad_temp_res = await async_client.put(
+        "/api/admin/settings/llm/ollama",
+        json={"temperature": 2.5},
+    )
+    assert bad_temp_res.status_code == 422
+
+    # Timeout under 1.0s
+    bad_timeout_res = await async_client.put(
+        "/api/admin/settings/llm/ollama",
+        json={"timeout_seconds": 0.2},
+    )
+    assert bad_timeout_res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_provider_retains_existing_key_when_omitted(async_client):
+    """Test updating other fields without api_key retains previous key."""
+    # First set a key
+    await async_client.put(
+        "/api/admin/settings/llm/openai",
+        json={"api_key": "sk-secret-sample-12345678"},
+    )
+
+    # Now update only temperature without sending api_key
+    update_res = await async_client.put(
+        "/api/admin/settings/llm/openai",
+        json={"temperature": 0.05},
+    )
+    assert update_res.status_code == 200
+    data = update_res.json()
+    assert data["has_api_key"] is True
+    assert data["api_key_masked"] == "••••••••5678"
+    assert data["temperature"] == 0.05
