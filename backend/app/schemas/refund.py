@@ -3,24 +3,65 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RefundSubmissionPayload(BaseModel):
     """Payload submitted by customer to request a refund."""
 
-    customer_email: str
-    order_number: str
+    customer_email: str = Field(
+        ...,
+        pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
+        max_length=255,
+        description="Valid customer email address",
+    )
+    order_number: str = Field(
+        ...,
+        pattern=r"^ORD-[0-9A-Za-z-]{3,32}$",
+        max_length=50,
+        description="Order identifier prefixed with ORD-",
+    )
     item_id: uuid.UUID
     amount: float = Field(..., ge=0.0, description="Requested refund amount in USD")
     reason_category: str = Field(
         ..., description="Category: damaged_on_arrival, defective, unwanted, etc."
     )
-    customer_explanation: str = Field(..., min_length=3, description="Customer explanation notes")
+    customer_explanation: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Customer explanation notes between 10 and 1000 characters",
+    )
     quantity: int = Field(default=1, ge=1, description="Quantity of units to refund")
     item_condition: str = Field(
         default="unopened", description="Condition: unopened, opened_used, damaged"
     )
+
+    @field_validator("customer_email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        cleaned = v.strip().lower()
+        if not cleaned or "@" not in cleaned:
+            raise ValueError("Please provide a valid email address.")
+        return cleaned
+
+    @field_validator("order_number")
+    @classmethod
+    def validate_order_number(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned.startswith("ORD-"):
+            raise ValueError("Order number must begin with 'ORD-'.")
+        return cleaned
+
+    @field_validator("customer_explanation")
+    @classmethod
+    def validate_explanation(cls, v: str) -> str:
+        cleaned = v.strip()
+        if len(cleaned) < 10:
+            raise ValueError("Customer explanation must contain at least 10 characters.")
+        if len(cleaned) > 1000:
+            raise ValueError("Customer explanation must not exceed 1000 characters.")
+        return cleaned
 
 
 class RefundItemDetail(BaseModel):
