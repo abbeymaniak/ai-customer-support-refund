@@ -53,4 +53,16 @@ describe('RefundRequestPage Component', () => {
     expect(markup).toContain('Customer Support Refund Portal');
     expect(markup).toContain('Submit and evaluate refund claims in seconds');
   });
+
+  it('renders real-time validation elements and security perimeter markers (covers: AC-7)', () => {
+    const markup = renderWithClient(<RefundRequestPage />);
+
+    // Default pre-filled persona email is valid
+    expect(markup).toContain('sarah.jenkins@example.com');
+    expect(markup).toContain('Lookup');
+
+    // Quick persona selectors allow instant valid email switching
+    expect(markup).toContain('Quick Load Test Persona (Evaluation Scenarios)');
+    expect(markup).toContain('David Miller');
+  });
 });

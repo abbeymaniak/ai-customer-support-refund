@@ -11,11 +11,19 @@ import {
   HelpCircle,
   RotateCcw,
   ShieldAlert,
+  ShieldCheck,
   FileCheck,
+  AlertCircle,
+  Check,
 } from 'lucide-react';
 import { refundApi } from '../api/refunds';
 import type { RefundRequest as RefundRequestType } from '../types';
 import { Alert, Badge } from '../components/ui';
+
+const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+const ORDER_REGEX = /^ORD-[0-9A-Za-z-]{3,32}$/;
+const EXPLANATION_MIN = 10;
+const EXPLANATION_MAX = 1000;
 
 const SAMPLE_PERSONAS = [
   { label: 'Sarah Jenkins (Low Risk, $3.2k Spent)', email: 'sarah.jenkins@example.com' },
@@ -28,6 +36,7 @@ const SAMPLE_PERSONAS = [
 
 export const RefundRequestPage: React.FC = () => {
   const [emailInput, setEmailInput] = useState('sarah.jenkins@example.com');
+  const [emailTouched, setEmailTouched] = useState(false);
   const [activeEmail, setActiveEmail] = useState('sarah.jenkins@example.com');
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
@@ -36,6 +45,11 @@ export const RefundRequestPage: React.FC = () => {
   const [reasonCategory, setReasonCategory] = useState<string>('defective');
   const [explanation, setExplanation] = useState<string>('');
   const [decisionResult, setDecisionResult] = useState<RefundRequestType | null>(null);
+
+  const isEmailValid = EMAIL_REGEX.test(emailInput.trim());
+  const explanationLength = explanation.trim().length;
+  const isExplanationValid =
+    explanationLength >= EXPLANATION_MIN && explanationLength <= EXPLANATION_MAX;
 
   // Fetch customer by active email
   const customerQuery = useQuery({
@@ -65,7 +79,7 @@ export const RefundRequestPage: React.FC = () => {
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (emailInput.trim()) {
+    if (isEmailValid) {
       setActiveEmail(emailInput.trim());
       setSelectedOrderId('');
       setSelectedItemId('');
@@ -76,6 +90,7 @@ export const RefundRequestPage: React.FC = () => {
 
   const handleSelectPersona = (email: string) => {
     setEmailInput(email);
+    setEmailTouched(false);
     setActiveEmail(email);
     setSelectedOrderId('');
     setSelectedItemId('');
@@ -92,7 +107,7 @@ export const RefundRequestPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !selectedItem) return;
+    if (!selectedOrder || !selectedItem || !isExplanationValid) return;
 
     refundMutation.mutate({
       customer_email: activeEmail,
@@ -100,7 +115,7 @@ export const RefundRequestPage: React.FC = () => {
       item_id: selectedItem.id,
       amount: selectedItem.price * quantity,
       reason_category: reasonCategory,
-      customer_explanation: explanation || 'Customer requested refund for item.',
+      customer_explanation: explanation.trim(),
       quantity,
       item_condition: itemCondition,
     });
@@ -163,22 +178,48 @@ export const RefundRequestPage: React.FC = () => {
               <span>Step 1: Customer Account</span>
             </h2>
 
-            <form onSubmit={handleLookup} className="flex gap-2">
-              <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="Enter customer email address..."
-                required
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-              />
-              <button
-                type="submit"
-                disabled={customerQuery.isLoading}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50"
-              >
-                Lookup
-              </button>
+            <form onSubmit={handleLookup} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setEmailTouched(true);
+                  }}
+                  onBlur={() => setEmailTouched(true)}
+                  placeholder="Enter customer email address..."
+                  required
+                  className={`flex-1 px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition ${
+                    emailTouched && !isEmailValid
+                      ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
+                      : emailTouched && isEmailValid
+                        ? 'border-emerald-300 focus:ring-emerald-500 bg-emerald-50/20'
+                        : 'border-slate-300 focus:ring-indigo-500'
+                  }`}
+                />
+                <button
+                  type="submit"
+                  disabled={customerQuery.isLoading || !isEmailValid}
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50 flex items-center space-x-1.5"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Lookup</span>
+                </button>
+              </div>
+
+              {emailTouched && !isEmailValid && (
+                <p className="text-xs text-rose-600 flex items-center space-x-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Please enter a valid email address (e.g. name@example.com).</span>
+                </p>
+              )}
+              {emailTouched && isEmailValid && (
+                <p className="text-xs text-emerald-600 flex items-center space-x-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Valid email address format.</span>
+                </p>
+              )}
             </form>
 
             {customerQuery.isError && (
@@ -240,9 +281,17 @@ export const RefundRequestPage: React.FC = () => {
 
               {/* Select Order */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700 uppercase">
-                  Select Order
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase">
+                    Select Order
+                  </label>
+                  {selectedOrder && ORDER_REGEX.test(selectedOrder.order_number) && (
+                    <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      <span>Validated Format ({selectedOrder.order_number})</span>
+                    </span>
+                  )}
+                </div>
                 <select
                   value={selectedOrderId}
                   onChange={(e) => {
@@ -372,16 +421,72 @@ export const RefundRequestPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 uppercase">
-                      Explanation / Notes (Evaluated by AI)
-                    </label>
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">
+                        Explanation / Notes (Evaluated by AI)
+                      </label>
+                      <span
+                        className={`text-xs font-mono font-medium ${
+                          explanation.length > EXPLANATION_MAX
+                            ? 'text-rose-600 font-bold'
+                            : explanationLength >= EXPLANATION_MIN
+                              ? 'text-emerald-600'
+                              : explanation.length > 0
+                                ? 'text-amber-600'
+                                : 'text-slate-400'
+                        }`}
+                      >
+                        {explanation.length} / {EXPLANATION_MAX} chars (min {EXPLANATION_MIN})
+                      </span>
+                    </div>
                     <textarea
                       rows={3}
                       value={explanation}
                       onChange={(e) => setExplanation(e.target.value)}
-                      placeholder="Please explain the issue in detail..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Please explain the issue in detail (at least 10 characters)..."
+                      className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition ${
+                        explanation.length > EXPLANATION_MAX
+                          ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
+                          : explanationLength >= EXPLANATION_MIN
+                            ? 'border-emerald-300 focus:ring-emerald-500'
+                            : explanation.length > 0
+                              ? 'border-amber-300 focus:ring-amber-500'
+                              : 'border-slate-300 focus:ring-indigo-500'
+                      }`}
                     />
+                    {explanation.length > 0 && explanationLength < EXPLANATION_MIN && (
+                      <p className="text-xs text-amber-600 flex items-center space-x-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>
+                          Explanation must be at least {EXPLANATION_MIN} characters ({EXPLANATION_MIN - explanationLength} more needed).
+                        </span>
+                      </p>
+                    )}
+                    {explanation.length > EXPLANATION_MAX && (
+                      <p className="text-xs text-rose-600 flex items-center space-x-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>
+                          Explanation cannot exceed {EXPLANATION_MAX} characters ({explanation.length - EXPLANATION_MAX} characters over limit).
+                        </span>
+                      </p>
+                    )}
+                    {isExplanationValid && (
+                      <p className="text-xs text-emerald-600 flex items-center space-x-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Valid explanation length for policy evaluation.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Security Perimeter Notice */}
+                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <div className="flex items-center space-x-1.5 font-semibold text-slate-700">
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <span>Security & Prompt Injection Protection</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      Inputs are sanitized against script tags and checked by security classifiers. Claims are evaluated strictly against store return policies.
+                    </p>
                   </div>
 
                   {refundMutation.isError && (
@@ -394,7 +499,7 @@ export const RefundRequestPage: React.FC = () => {
 
                   <button
                     type="submit"
-                    disabled={refundMutation.isPending}
+                    disabled={refundMutation.isPending || !isExplanationValid}
                     className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-100 transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-50"
                   >
                     {refundMutation.isPending ? (
