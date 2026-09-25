@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL DEFAULT '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login_at TIMESTAMP WITHOUT TIME ZONE,
     total_spent DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     orders_count INTEGER NOT NULL DEFAULT 0,
     refunds_count INTEGER NOT NULL DEFAULT 0,
@@ -128,11 +131,13 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+    customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
     token_hash VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    CONSTRAINT ck_refresh_tokens_owner CHECK ((user_id IS NOT NULL AND customer_id IS NULL) OR (customer_id IS NOT NULL AND user_id IS NULL))
 );
 
 CREATE TABLE IF NOT EXISTS security_logs (
@@ -177,6 +182,7 @@ CREATE INDEX IF NOT EXISTS idx_llm_providers_llm ON llm_providers(llm);
 CREATE INDEX IF NOT EXISTS idx_llm_providers_is_active ON llm_providers(is_active);
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_customer_id ON refresh_tokens(customer_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS ix_security_logs_event_type ON security_logs(event_type);
 CREATE INDEX IF NOT EXISTS ix_security_logs_severity ON security_logs(severity);
@@ -185,30 +191,32 @@ CREATE INDEX IF NOT EXISTS ix_security_logs_order_number ON security_logs(order_
 CREATE INDEX IF NOT EXISTS ix_security_logs_created_at ON security_logs(created_at);
 
 -- 2. Seed Customer Profiles (16 Realistic Personas)
-INSERT INTO customers (id, email, name, total_spent, orders_count, refunds_count, return_rate, risk_score, account_created_at)
+INSERT INTO customers (id, email, name, password_hash, is_active, total_spent, orders_count, refunds_count, return_rate, risk_score, account_created_at)
 VALUES
-    ('c1111111-1111-1111-1111-111111111111', 'sarah.jenkins@example.com', 'Sarah Jenkins', 3240.50, 18, 0, 0.00, 0.05, NOW() - INTERVAL '400 days'),
-    ('c2222222-2222-2222-2222-222222222222', 'david.miller@example.com', 'David Miller', 450.00, 4, 0, 0.00, 0.10, NOW() - INTERVAL '120 days'),
-    ('c3333333-3333-3333-3333-333333333333', 'elena.rostova@example.com', 'Elena Rostova', 890.25, 6, 2, 0.33, 0.38, NOW() - INTERVAL '210 days'),
-    ('c4444444-4444-4444-4444-444444444444', 'marcus.vance@example.com', 'Marcus Vance', 1200.00, 5, 3, 0.60, 0.85, NOW() - INTERVAL '90 days'),
-    ('c5555555-5555-5555-5555-555555555555', 'victoria.sterling@example.com', 'Victoria Sterling', 12450.00, 32, 1, 0.03, 0.02, NOW() - INTERVAL '700 days'),
-    ('c6666666-6666-6666-6666-666666666666', 'alex.rivera@example.com', 'Alex Rivera', 85.00, 1, 0, 0.00, 0.15, NOW() - INTERVAL '15 days'),
-    ('c7777777-7777-7777-7777-777777777777', 'kevin.chen@example.com', 'Kevin Chen', 2800.75, 9, 1, 0.11, 0.12, NOW() - INTERVAL '300 days'),
-    ('c8888888-8888-8888-8888-888888888888', 'amanda.price@example.com', 'Amanda Price', 320.40, 8, 1, 0.12, 0.15, NOW() - INTERVAL '180 days'),
-    ('c9999999-9999-9999-9999-999999999999', 'chloe.dubois@example.com', 'Chloe Dubois', 1650.00, 11, 3, 0.27, 0.35, NOW() - INTERVAL '250 days'),
-    ('caaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'robert.taylor@example.com', 'Robert Taylor', 620.00, 3, 0, 0.00, 0.10, NOW() - INTERVAL '450 days'),
-    ('cbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'james.wilson@example.com', 'James Wilson', 1850.00, 1, 0, 0.00, 0.20, NOW() - INTERVAL '20 days'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'maria.santos@example.com', 'Maria Santos', 2100.30, 14, 1, 0.07, 0.08, NOW() - INTERVAL '350 days'),
-    ('cddddddd-dddd-dddd-dddd-dddddddddddd', 'tyler.brooks@example.com', 'Tyler Brooks', 940.00, 4, 2, 0.50, 0.72, NOW() - INTERVAL '75 days'),
-    ('ceeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'emily.watson@example.com', 'Emily Watson', 1400.00, 7, 0, 0.00, 0.05, NOW() - INTERVAL '190 days'),
-    ('cfffffff-ffff-ffff-ffff-ffffffffffff', 'lucas.bennett@example.com', 'Lucas Bennett', 210.00, 3, 0, 0.00, 0.10, NOW() - INTERVAL '60 days'),
-    ('c0000000-0000-0000-0000-000000000000', 'samantha.reed@example.com', 'Samantha Reed', 780.00, 2, 1, 0.50, 0.65, NOW() - INTERVAL '40 days')
+    ('c1111111-1111-1111-1111-111111111111', 'sarah.jenkins@example.com', 'Sarah Jenkins', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 3240.50, 18, 0, 0.00, 0.05, NOW() - INTERVAL '400 days'),
+    ('c2222222-2222-2222-2222-222222222222', 'david.miller@example.com', 'David Miller', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 450.00, 4, 0, 0.00, 0.10, NOW() - INTERVAL '120 days'),
+    ('c3333333-3333-3333-3333-333333333333', 'elena.rostova@example.com', 'Elena Rostova', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 890.25, 6, 2, 0.33, 0.38, NOW() - INTERVAL '210 days'),
+    ('c4444444-4444-4444-4444-444444444444', 'marcus.vance@example.com', 'Marcus Vance', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 1200.00, 5, 3, 0.60, 0.85, NOW() - INTERVAL '90 days'),
+    ('c5555555-5555-5555-5555-555555555555', 'victoria.sterling@example.com', 'Victoria Sterling', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 12450.00, 32, 1, 0.03, 0.02, NOW() - INTERVAL '700 days'),
+    ('c6666666-6666-6666-6666-666666666666', 'alex.rivera@example.com', 'Alex Rivera', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 85.00, 1, 0, 0.00, 0.15, NOW() - INTERVAL '15 days'),
+    ('c7777777-7777-7777-7777-777777777777', 'kevin.chen@example.com', 'Kevin Chen', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 2800.75, 9, 1, 0.11, 0.12, NOW() - INTERVAL '300 days'),
+    ('c8888888-8888-8888-8888-888888888888', 'amanda.price@example.com', 'Amanda Price', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 320.40, 8, 1, 0.12, 0.15, NOW() - INTERVAL '180 days'),
+    ('c9999999-9999-9999-9999-999999999999', 'chloe.dubois@example.com', 'Chloe Dubois', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 1650.00, 11, 3, 0.27, 0.35, NOW() - INTERVAL '250 days'),
+    ('caaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'robert.taylor@example.com', 'Robert Taylor', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 620.00, 3, 0, 0.00, 0.10, NOW() - INTERVAL '450 days'),
+    ('cbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'james.wilson@example.com', 'James Wilson', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 1850.00, 1, 0, 0.00, 0.20, NOW() - INTERVAL '20 days'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'maria.santos@example.com', 'Maria Santos', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 2100.30, 14, 1, 0.07, 0.08, NOW() - INTERVAL '350 days'),
+    ('cddddddd-dddd-dddd-dddd-dddddddddddd', 'tyler.brooks@example.com', 'Tyler Brooks', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 940.00, 4, 2, 0.50, 0.72, NOW() - INTERVAL '75 days'),
+    ('ceeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'emily.watson@example.com', 'Emily Watson', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 1400.00, 7, 0, 0.00, 0.05, NOW() - INTERVAL '190 days'),
+    ('cfffffff-ffff-ffff-ffff-ffffffffffff', 'lucas.bennett@example.com', 'Lucas Bennett', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 210.00, 3, 0, 0.00, 0.10, NOW() - INTERVAL '60 days'),
+    ('c0000000-0000-0000-0000-000000000000', 'samantha.reed@example.com', 'Samantha Reed', '$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC', TRUE, 780.00, 2, 1, 0.50, 0.65, NOW() - INTERVAL '40 days')
 ON CONFLICT (id) DO UPDATE SET
     total_spent = EXCLUDED.total_spent,
     orders_count = EXCLUDED.orders_count,
     refunds_count = EXCLUDED.refunds_count,
     return_rate = EXCLUDED.return_rate,
-    risk_score = EXCLUDED.risk_score;
+    risk_score = EXCLUDED.risk_score,
+    password_hash = EXCLUDED.password_hash,
+    is_active = EXCLUDED.is_active;
 
 -- 3. Seed Realistic Orders Across All 16 Customers
 INSERT INTO orders (id, customer_id, order_number, order_date, delivery_date, total_amount, currency, status, items, shipping_address)

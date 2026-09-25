@@ -7,7 +7,16 @@ from app.config import settings
 from app.core.logging import setup_logging
 from app.database import async_session
 from app.db.seed import seed_database
-from app.routes import admin, admin_security, admin_settings, auth, customers, health, refunds
+from app.routes import (
+    admin,
+    admin_security,
+    admin_settings,
+    auth,
+    customer_auth,
+    customers,
+    health,
+    refunds,
+)
 
 setup_logging()
 
@@ -43,6 +52,7 @@ app.add_middleware(
 # Register routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(customer_auth.router, prefix="/api/customer/auth", tags=["Customer Authentication"])
 app.include_router(refunds.router, prefix="/api/refunds", tags=["Refunds"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])

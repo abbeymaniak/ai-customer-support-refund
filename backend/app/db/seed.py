@@ -105,7 +105,15 @@ async def verify_and_seed_defaults(session: AsyncSession) -> dict[str, int]:
             session.add(p)
     await session.commit()
 
-    # 4. Report verified counts
+    # 4. Ensure customer credentials exist
+    default_hash = "$2b$12$eKZWf0D6LxbmHk161evm/.5u9N9HFhTFCn6azLziY41JzVBNB0qeC"
+    await session.execute(
+        text("UPDATE customers SET password_hash = :hash WHERE password_hash IS NULL OR password_hash = ''"),
+        {"hash": default_hash},
+    )
+    await session.commit()
+
+    # 5. Report verified counts
     cust_count = (await session.execute(select(func.count(Customer.id)))).scalar() or 0
     order_count = (await session.execute(select(func.count(Order.id)))).scalar() or 0
     admin_count = (await session.execute(select(func.count(AdminUser.id)))).scalar() or 0

@@ -2,14 +2,14 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 if TYPE_CHECKING:
-    pass
+    from app.models.customer import Customer
 
 
 class AdminUser(Base):
@@ -35,20 +35,34 @@ class AdminUser(Base):
 
 
 class RefreshToken(Base):
-    """Cryptographic refresh token model supporting rotation and revocation."""
+    """Cryptographic refresh token model supporting rotation and revocation for admins and customers."""
 
     __tablename__ = "refresh_tokens"
+    __table_args__ = (
+        CheckConstraint(
+            "(user_id IS NOT NULL AND customer_id IS NULL) OR (customer_id IS NOT NULL AND user_id IS NULL)",
+            name="ck_refresh_tokens_owner",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("admin_users.id", ondelete="CASCADE"),
         index=True,
-        nullable=False,
+        nullable=True,
+    )
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
     )
     token_hash: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    user: Mapped["AdminUser"] = relationship("AdminUser", back_populates="refresh_tokens")
+    user: Mapped["AdminUser | None"] = relationship("AdminUser", back_populates="refresh_tokens")
+    customer: Mapped["Customer | None"] = relationship("Customer", back_populates="refresh_tokens")
+
