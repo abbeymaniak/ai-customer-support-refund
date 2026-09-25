@@ -99,7 +99,7 @@ async def verify_and_seed_defaults(session: AsyncSession) -> dict[str, int]:
                 api_key=api_key,
                 api_base=api_base,
                 temperature=0.0,
-                timeout_seconds=3.0,
+                timeout_seconds=60.0 if llm_name == "ollama" else 15.0,
                 updated_by="seed_service",
             )
             session.add(p)

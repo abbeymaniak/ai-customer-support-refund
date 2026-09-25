@@ -645,6 +645,32 @@ export const RefundRequestPage: React.FC = () => {
                     </div>
                   )}
               </div>
+            ) : refundMutation.isPending ? (
+              <div className="py-14 text-center space-y-5">
+                <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-indigo-100 animate-ping opacity-75"></div>
+                  <div className="relative rounded-full bg-indigo-600 p-3.5 text-white shadow-lg shadow-indigo-100">
+                    <Sparkles className="w-8 h-8 animate-spin" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold text-slate-800 flex items-center justify-center space-x-1">
+                    <span>Evaluating your request</span>
+                    <span className="inline-flex items-center space-x-1 ml-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                    Analyzing order history, product condition, and store policies with the decision engine.
+                  </p>
+                </div>
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                  <span>AI reasoning in progress (few seconds for local models)</span>
+                </div>
+              </div>
             ) : (
               <div className="py-16 text-center space-y-3 text-slate-400">
                 <HelpCircle className="w-12 h-12 mx-auto stroke-1 text-slate-300" />
