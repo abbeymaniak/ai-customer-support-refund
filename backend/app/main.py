@@ -6,18 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.logging import setup_logging
 from app.database import async_session
+from app.db.seed import seed_database
 from app.routes import admin, admin_security, admin_settings, auth, customers, health, refunds
-from app.services.auth_service import AuthService
 
 setup_logging()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan ensuring default test credentials exist."""
+    """Application lifespan ensuring default test credentials and seed profiles exist."""
     async with async_session() as session:
         try:
-            await AuthService.ensure_seed_users(session)
+            await seed_database(session)
         except Exception:
             pass
     yield
@@ -46,10 +46,5 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(refunds.router, prefix="/api/refunds", tags=["Refunds"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
-app.include_router(
-    admin_security.router, prefix="/api/admin", tags=["Admin Security"]
-)
-app.include_router(
-    admin_settings.router, prefix="/api/admin/settings", tags=["Admin Settings"]
-)
-
+app.include_router(admin_security.router, prefix="/api/admin", tags=["Admin Security"])
+app.include_router(admin_settings.router, prefix="/api/admin/settings", tags=["Admin Settings"])

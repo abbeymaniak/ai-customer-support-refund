@@ -37,7 +37,9 @@ def upgrade() -> None:
         sa.Column("api_base", sa.String(length=255), nullable=True),
         sa.Column("temperature", sa.Float(), nullable=False, server_default=sa.text("0.0")),
         sa.Column("timeout_seconds", sa.Float(), nullable=False, server_default=sa.text("3.0")),
-        sa.Column("updated_by", sa.String(length=128), nullable=True, server_default=sa.text("'system'")),
+        sa.Column(
+            "updated_by", sa.String(length=128), nullable=True, server_default=sa.text("'system'")
+        ),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )

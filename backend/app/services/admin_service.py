@@ -156,9 +156,13 @@ class AdminService:
         """Compute aggregated operations metrics for administrative overview cards."""
         stmt = select(
             func.count(RefundRequest.id).label("total"),
-            func.count(case((func.lower(RefundRequest.decision) == "approved", 1))).label("approved"),
+            func.count(case((func.lower(RefundRequest.decision) == "approved", 1))).label(
+                "approved"
+            ),
             func.count(case((func.lower(RefundRequest.decision) == "denied", 1))).label("denied"),
-            func.count(case((func.lower(RefundRequest.decision) == "escalated", 1))).label("escalated"),
+            func.count(case((func.lower(RefundRequest.decision) == "escalated", 1))).label(
+                "escalated"
+            ),
             func.count(case((RefundRequest.human_override.is_(True), 1))).label("overrides"),
             func.coalesce(
                 func.sum(

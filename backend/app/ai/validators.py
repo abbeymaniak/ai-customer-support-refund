@@ -73,7 +73,9 @@ def enforce_policy_guardrails(
         )
 
     # 4. Elevated customer risk profile cannot be auto-approved
-    elif validated.get("decision") == "Approved" and (customer_risk_score > 0.70 or customer_return_rate > 0.50):
+    elif validated.get("decision") == "Approved" and (
+        customer_risk_score > 0.70 or customer_return_rate > 0.50
+    ):
         logger.warning(
             "llm_guardrail_risk_profile_escalation",
             risk_score=customer_risk_score,

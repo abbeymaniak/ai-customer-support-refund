@@ -83,13 +83,16 @@ def build_evaluation_prompt(context: RefundEvaluationContext) -> list[dict[str, 
         "order": {
             "order_number": context.order.get("order_number"),
             "order_date": context.order.get("order_date"),
-            "delivery_date": context.order.get("delivery_date") or context.order.get("delivered_date"),
+            "delivery_date": context.order.get("delivery_date")
+            or context.order.get("delivered_date"),
         },
         "refund_item": {
-            "product_name": context.refund_item.get("product_name") or context.refund_item.get("name"),
+            "product_name": context.refund_item.get("product_name")
+            or context.refund_item.get("name"),
             "price": context.refund_item.get("price"),
             "quantity": context.refund_item.get("quantity", 1),
-            "condition": context.refund_item.get("item_condition") or context.refund_item.get("condition"),
+            "condition": context.refund_item.get("item_condition")
+            or context.refund_item.get("condition"),
             "is_final_sale": context.refund_item.get("is_final_sale", False),
         },
         "claim_details": {

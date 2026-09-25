@@ -29,13 +29,22 @@ router = APIRouter()
     description="Retrieve paginated list of claims with optional status, search, and date filters.",
 )
 async def list_refund_requests(
-    decision: str | None = Query(default=None, description="Status filter: Approved, Denied, Escalated, or all"),
-    search: str | None = Query(default=None, description="Search by customer email, name, order, or request number"),
+    decision: str | None = Query(
+        default=None, description="Status filter: Approved, Denied, Escalated, or all"
+    ),
+    search: str | None = Query(
+        default=None, description="Search by customer email, name, order, or request number"
+    ),
     start_date: datetime | None = Query(default=None, description="Start date boundary (ISO 8601)"),
     end_date: datetime | None = Query(default=None, description="End date boundary (ISO 8601)"),
-    sort_by: str = Query(default="created_at", description="Sort column: created_at, amount, request_number, decision"),
+    sort_by: str = Query(
+        default="created_at",
+        description="Sort column: created_at, amount, request_number, decision",
+    ),
     sort_order: str = Query(default="desc", description="Sort direction: asc or desc"),
-    min_risk_score: float | None = Query(default=None, ge=0.0, le=1.0, description="Minimum risk score filter"),
+    min_risk_score: float | None = Query(
+        default=None, ge=0.0, le=1.0, description="Minimum risk score filter"
+    ),
     limit: int = Query(default=20, ge=1, le=100, description="Page record limit"),
     offset: int = Query(default=0, ge=0, description="Page record offset"),
     current_user: AdminUser = Depends(get_current_admin_user),
@@ -132,4 +141,3 @@ async def list_audit_logs(
 ) -> list[AuditLogResponse]:
     admin_service = AdminService(db)
     return await admin_service.get_audit_logs(refund_id=refund_id, limit=limit)
-

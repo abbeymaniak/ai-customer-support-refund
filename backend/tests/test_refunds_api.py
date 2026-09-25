@@ -92,9 +92,7 @@ async def test_process_refund_high_value_escalation_and_audit_trail(async_client
 
     item_id = "1bbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01"
     # Clean up prior test runs for this item
-    await db_session.execute(
-        delete(RefundRequest).where(RefundRequest.item_id == item_id)
-    )
+    await db_session.execute(delete(RefundRequest).where(RefundRequest.item_id == item_id))
     await db_session.commit()
 
     payload = {
@@ -135,4 +133,3 @@ async def test_process_refund_high_value_escalation_and_audit_trail(async_client
     assert detail["request_number"] == data["request_number"]
     assert len(detail["refund_items"]) == 1
     assert detail["refund_items"][0]["order_item_id"] == item_id
-

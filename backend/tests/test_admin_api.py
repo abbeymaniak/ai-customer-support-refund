@@ -57,18 +57,26 @@ async def test_list_refunds_search(admin_auth_client):
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) >= 1
-    assert any("sarah" in (item["customer_email"] or "").lower() or "sarah" in (item["customer_name"] or "").lower() for item in data["items"])
+    assert any(
+        "sarah" in (item["customer_email"] or "").lower()
+        or "sarah" in (item["customer_name"] or "").lower()
+        for item in data["items"]
+    )
 
 
 @pytest.mark.asyncio
 async def test_list_refunds_sorting_and_pagination(admin_auth_client):
     """Test AC-1: Sorting by amount and pagination with limit and offset."""
-    res_asc = await admin_auth_client.get("/api/admin/refunds?sort_by=amount&sort_order=asc&limit=2&offset=0")
+    res_asc = await admin_auth_client.get(
+        "/api/admin/refunds?sort_by=amount&sort_order=asc&limit=2&offset=0"
+    )
     assert res_asc.status_code == 200
     data_asc = res_asc.json()
     assert len(data_asc["items"]) <= 2
 
-    res_desc = await admin_auth_client.get("/api/admin/refunds?sort_by=amount&sort_order=desc&limit=2&offset=0")
+    res_desc = await admin_auth_client.get(
+        "/api/admin/refunds?sort_by=amount&sort_order=desc&limit=2&offset=0"
+    )
     assert res_desc.status_code == 200
     data_desc = res_desc.json()
     assert len(data_desc["items"]) <= 2
@@ -81,7 +89,9 @@ async def test_list_refunds_date_filtering(admin_auth_client):
     past_date = (now - timedelta(days=365)).isoformat()
     future_date = (now + timedelta(days=1)).isoformat()
 
-    response = await admin_auth_client.get(f"/api/admin/refunds?start_date={past_date}&end_date={future_date}")
+    response = await admin_auth_client.get(
+        f"/api/admin/refunds?start_date={past_date}&end_date={future_date}"
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
@@ -141,7 +151,9 @@ async def test_override_decision_validation(admin_auth_client):
         "reason": "bad",
         "actor": "lead@store.com",
     }
-    response = await admin_auth_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload)
+    response = await admin_auth_client.post(
+        f"/api/admin/refunds/{seeded_id}/override", json=payload
+    )
     assert response.status_code == 422
 
     # Whitespace only reason
@@ -150,7 +162,9 @@ async def test_override_decision_validation(admin_auth_client):
         "reason": "     ",
         "actor": "lead@store.com",
     }
-    response_ws = await admin_auth_client.post(f"/api/admin/refunds/{seeded_id}/override", json=payload_whitespace)
+    response_ws = await admin_auth_client.post(
+        f"/api/admin/refunds/{seeded_id}/override", json=payload_whitespace
+    )
     assert response_ws.status_code == 422
 
 
@@ -179,7 +193,9 @@ async def test_override_decision_success(admin_auth_client, db_session):
         "reason": "Supervisor courtesy approved due to high customer lifetime value.",
         "actor": "supervisor@store.com",
     }
-    response = await admin_auth_client.post(f"/api/admin/refunds/{new_req.id}/override", json=override_payload)
+    response = await admin_auth_client.post(
+        f"/api/admin/refunds/{new_req.id}/override", json=override_payload
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["decision"] == "Approved"
@@ -210,7 +226,9 @@ async def test_override_decision_not_found(admin_auth_client):
         "reason": "Legitimate justification for non-existent claim.",
         "actor": "supervisor@store.com",
     }
-    response = await admin_auth_client.post(f"/api/admin/refunds/{random_id}/override", json=payload)
+    response = await admin_auth_client.post(
+        f"/api/admin/refunds/{random_id}/override", json=payload
+    )
     assert response.status_code == 404
 
 

@@ -157,4 +157,3 @@ class AnomalyService:
             risk_score += 0.3
 
         return min(1.0, round(risk_score, 2))
-

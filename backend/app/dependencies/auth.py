@@ -11,9 +11,7 @@ from app.models.auth import AdminUser
 from app.services.auth_service import AuthService
 
 
-def set_auth_cookies(
-    response: Response, access_token: str, refresh_token: str
-) -> None:
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
     """Set HTTP-only access and refresh token cookies."""
     response.set_cookie(
         key="access_token",
@@ -74,7 +72,6 @@ async def get_current_admin_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token subject",
         ) from None
-
 
     stmt = select(AdminUser).where(AdminUser.id == user_uuid)
     result = await db.execute(stmt)

@@ -14,8 +14,8 @@ services:
       - ./data/seed.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-refunds_user} -d ${POSTGRES_DB:-refunds_db}"]
-      interval: 5s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
 
   backend:
@@ -30,6 +30,11 @@ services:
       - ./backend:/app
       - ./data:/app/data:ro
     environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-refunds_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-refunds_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-refunds_db}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-refunds_user}:${POSTGRES_PASSWORD:-refunds_pass}@postgres:5432/${POSTGRES_DB:-refunds_db}
       - LLM_PROVIDER=${LLM_PROVIDER:-openai/gpt-4o-mini}
       - LLM_FALLBACK_PROVIDER=${LLM_FALLBACK_PROVIDER:-ollama/llama3}
@@ -40,6 +45,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     build:
@@ -50,7 +61,13 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

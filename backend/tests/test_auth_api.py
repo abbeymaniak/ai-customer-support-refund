@@ -264,4 +264,3 @@ async def test_unknown_refresh_token_rejected(async_client):
     )
     assert res.status_code == 401
     assert "Invalid, revoked, or expired" in res.json()["detail"]
-

@@ -64,9 +64,7 @@ class RefundService:
         if not order:
             raise ValueError(f"Order '{payload.order_number}' not found.")
         if order.customer_id != customer.id:
-            raise ValueError(
-                f"Order '{payload.order_number}' not found."
-            )
+            raise ValueError(f"Order '{payload.order_number}' not found.")
 
         # 3. Lookup Order Item
         order_item = None
@@ -157,18 +155,23 @@ class RefundService:
             )
 
             # Post-evaluation deterministic guardrail interceptor (AC-6)
-            guardrail_decision, guardrail_reason, was_overridden = policy_service.enforce_guardrails(
-                ai_decision=ai_res.get("decision", "Escalated"),
-                is_final_sale=order_item.is_final_sale,
-                days_since_delivery=days_since_delivery,
-                reason=payload.reason_category,
-                category=order_item.category,
+            guardrail_decision, guardrail_reason, was_overridden = (
+                policy_service.enforce_guardrails(
+                    ai_decision=ai_res.get("decision", "Escalated"),
+                    is_final_sale=order_item.is_final_sale,
+                    days_since_delivery=days_since_delivery,
+                    reason=payload.reason_category,
+                    category=order_item.category,
+                )
             )
 
             if was_overridden:
                 final_decision = "Denied"
                 final_confidence = 1.0
-                final_reasoning = guardrail_reason or "Non-negotiable policy guardrail enforced: Request is denied."
+                final_reasoning = (
+                    guardrail_reason
+                    or "Non-negotiable policy guardrail enforced: Request is denied."
+                )
                 llm_audit_data = {
                     "decision": "Denied",
                     "confidence_score": 1.0,
@@ -248,9 +251,7 @@ class RefundService:
             elif anomaly_flags:
                 final_decision = "Escalated"
                 final_confidence = 0.5
-                final_reasoning = (
-                    f"Claim flagged for human supervisor review due to detected anomalies: {', '.join(anomaly_flags)}."
-                )
+                final_reasoning = f"Claim flagged for human supervisor review due to detected anomalies: {', '.join(anomaly_flags)}."
             else:
                 final_decision = "Escalated"
                 final_confidence = 0.5
