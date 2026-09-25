@@ -30,6 +30,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Filter and pagination state
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [minRiskFilter, setMinRiskFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
@@ -71,6 +72,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleClearFilters = () => {
     setFilterStatus('all');
+    setMinRiskFilter('all');
     setSearchInput('');
     setStartDate('');
     setEndDate('');
@@ -82,6 +84,7 @@ export const AdminDashboardPage: React.FC = () => {
   // Build query params
   const queryParams: RefundListParams = {
     decision: filterStatus !== 'all' ? filterStatus : undefined,
+    min_risk_score: minRiskFilter !== 'all' ? parseFloat(minRiskFilter) : undefined,
     search: debouncedSearch || undefined,
     start_date: startDate ? new Date(startDate).toISOString() : undefined,
     end_date: endDate ? new Date(endDate).toISOString() : undefined,
@@ -315,7 +318,7 @@ export const AdminDashboardPage: React.FC = () => {
               />
             </div>
 
-            {(startDate || endDate || filterStatus !== 'all' || debouncedSearch) && (
+            {(startDate || endDate || filterStatus !== 'all' || minRiskFilter !== 'all' || debouncedSearch) && (
               <button
                 onClick={handleClearFilters}
                 className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition"
@@ -329,24 +332,53 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* Status Tabs and Quick Sorter */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-slate-500 uppercase flex items-center space-x-1 mr-1">
-              <Filter className="w-3.5 h-3.5" />
-              <span>Status:</span>
-            </span>
-            {['all', 'Approved', 'Denied', 'Escalated'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => handleStatusChange(tab)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  filterStatus === tab
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {tab === 'all' ? 'All Requests' : tab}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center space-x-1.5">
+              <span className="text-xs font-bold text-slate-500 uppercase flex items-center space-x-1 mr-1">
+                <Filter className="w-3.5 h-3.5" />
+                <span>Status:</span>
+              </span>
+              {['all', 'Approved', 'Denied', 'Escalated'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => handleStatusChange(tab)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    filterStatus === tab
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab === 'all' ? 'All Requests' : tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-1.5 pl-2 border-l border-slate-200">
+              <span className="text-xs font-bold text-slate-500 uppercase flex items-center space-x-1 mr-1">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                <span>Risk:</span>
+              </span>
+              {[
+                { label: 'All', val: 'all' },
+                { label: 'Elevated (≥30%)', val: '0.3' },
+                { label: 'High (≥70%)', val: '0.7' },
+              ].map(({ label, val }) => (
+                <button
+                  key={val}
+                  onClick={() => {
+                    setMinRiskFilter(val);
+                    setCurrentPage(0);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    minRiskFilter === val
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 text-xs text-slate-500">
@@ -403,6 +435,15 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                 </th>
                 <th
+                  onClick={() => handleSortToggle('risk_score')}
+                  className="px-6 py-3.5 cursor-pointer hover:text-slate-900 select-none"
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Risk & Anomalies</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th
                   onClick={() => handleSortToggle('decision')}
                   className="px-6 py-3.5 cursor-pointer hover:text-slate-900 select-none"
                 >
@@ -418,7 +459,7 @@ export const AdminDashboardPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {refundsQuery.isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex items-center justify-center space-x-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
                       <span>Loading claims data...</span>
@@ -427,7 +468,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 space-y-2">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400 space-y-2">
                     <p className="font-semibold text-slate-600">No refund requests found</p>
                     <p className="text-xs">
                       Try adjusting your status filter, search terms, or date range.
@@ -470,6 +511,42 @@ export const AdminDashboardPage: React.FC = () => {
 
                     <td className="px-6 py-4 font-semibold text-slate-900">
                       ${req.amount.toFixed(2)}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-1.5">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${
+                              (req.risk_score ?? 0) >= 0.7
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : (req.risk_score ?? 0) >= 0.3
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                          >
+                            {((req.risk_score ?? 0) * 100).toFixed(0)}% Risk
+                          </span>
+                        </div>
+                        {req.anomaly_flags && req.anomaly_flags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {req.anomaly_flags.map((flag) => (
+                              <span
+                                key={flag}
+                                className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold font-mono"
+                              >
+                                {flag === 'velocity_limit_exceeded'
+                                  ? 'Velocity Spike'
+                                  : flag === 'high_value_cluster'
+                                    ? 'High Value'
+                                    : flag === 'conflicting_claim_detected'
+                                      ? 'Duplicate Claim'
+                                      : flag.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     <td className="px-6 py-4">
@@ -701,6 +778,66 @@ export const AdminDashboardPage: React.FC = () => {
                           ${(selectedDetail.customer?.total_spent ?? 0).toFixed(2)} (
                           {selectedDetail.customer?.orders_count ?? 0} orders)
                         </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Outage Fallback Banner if present */}
+                  {selectedDetail.error_context && (
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                      <div className="font-bold flex items-center space-x-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <span>AI Provider Outage Fallback</span>
+                      </div>
+                      <p className="text-amber-800 text-xs">
+                        Automated AI decision service was unavailable during evaluation. The claim was safely persisted and escalated for supervisor review.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Security & Anomaly Telemetry */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Security & Anomaly Telemetry</span>
+                    </h3>
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 text-xs space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500">Claim Risk Score:</span>
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                            (selectedDetail.risk_score ?? 0) >= 0.7
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : (selectedDetail.risk_score ?? 0) >= 0.3
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}
+                        >
+                          {((selectedDetail.risk_score ?? 0) * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block mb-1">Anomaly Flags:</span>
+                        {selectedDetail.anomaly_flags && selectedDetail.anomaly_flags.length > 0 ? (
+                          <div className="space-y-1.5 pt-1">
+                            {selectedDetail.anomaly_flags.map((flag) => (
+                              <div
+                                key={flag}
+                                className="flex items-center space-x-2 bg-rose-50 border border-rose-200 text-rose-800 p-2 rounded-lg"
+                              >
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                                <div className="font-semibold text-[11px]">
+                                  {flag === 'velocity_limit_exceeded' && 'Velocity Spike: 3+ claims within rolling 24 hours'}
+                                  {flag === 'high_value_cluster' && 'High Value Cluster: Item > $200 or 7-day sum > $500'}
+                                  {flag === 'conflicting_claim_detected' && 'Conflicting Claim: Active or approved claim on item within 30 days'}
+                                  {!['velocity_limit_exceeded', 'high_value_cluster', 'conflicting_claim_detected'].includes(flag) && flag}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-emerald-700 font-medium">Clean • No anomalies detected</span>
+                        )}
                       </div>
                     </div>
                   </div>

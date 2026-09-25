@@ -164,4 +164,25 @@ describe('RequestDetailPage Component', () => {
     expect(markup).toContain('human override');
     expect(markup).toContain('Actor: lead@store.com');
   });
+
+  it('renders risk score, anomaly flags, and AI provider outage banner (covers: AC-5, AC-8)', () => {
+    const claimWithAnomalies = {
+      ...sampleClaim,
+      risk_score: 0.7,
+      anomaly_flags: ['velocity_limit_exceeded', 'high_value_cluster'],
+      error_context: {
+        error_type: 'TimeoutError',
+        message: 'Provider request timed out after 3000ms',
+      },
+    };
+
+    const markup = renderWithDetail('21111111-1111-1111-1111-111111111101', claimWithAnomalies);
+
+    expect(markup).toContain('70% Risk');
+    expect(markup).toContain('Security &amp; Anomalies');
+    expect(markup).toContain('Velocity Spike: 3+ claims in 24h');
+    expect(markup).toContain('High Value Cluster: Item &gt; $200 or 7d sum &gt; $500');
+    expect(markup).toContain('AI Decision Provider Outage Fallback');
+    expect(markup).toContain('TimeoutError');
+  });
 });

@@ -334,3 +334,56 @@ class PolicyService:
             citations=citations,
             is_approved=True,
         )
+
+    def enforce_guardrails(
+        self,
+        ai_decision: str,
+        is_final_sale: bool = False,
+        days_since_delivery: int | None = None,
+        reason: str = "",
+        category: str | None = None,
+    ) -> tuple[str, str | None, bool]:
+        """Inspect AI decision against non-negotiable hard policy rules.
+
+        Returns (final_decision, override_reason, was_overridden).
+        If AI recommended approval for an ineligible item (final sale, expired window,
+        or non-refundable category), forcibly overrides decision to 'denied'.
+        """
+        decision_lower = ai_decision.lower().strip()
+        if decision_lower not in ["approved", "approve"]:
+            return ai_decision, None, False
+
+        # Hard Rule 1: Final sale and clearance items are strictly non-refundable
+        if is_final_sale:
+            return (
+                "denied",
+                "Non-negotiable policy guardrail: Final sale and clearance items cannot be refunded. AI approval overridden.",
+                True,
+            )
+
+        # Hard Rule 2: Non-refundable categories
+        if category and category.lower() in ["gift_card", "digital_goods", "perishable"]:
+            return (
+                "denied",
+                f"Non-negotiable policy guardrail: Item category '{category}' is strictly non-refundable. AI approval overridden.",
+                True,
+            )
+
+        # Hard Rule 3: Delivery return window expired
+        general = self.get_general_rules()
+        is_defect = reason in ["damaged_on_arrival", "defective", "wrong_item_sent"]
+        effective_window = (
+            general.damaged_defective_window_days
+            if is_defect
+            else general.return_window_days
+        )
+
+        if days_since_delivery is not None and days_since_delivery > effective_window:
+            return (
+                "denied",
+                f"Non-negotiable policy guardrail: Request submitted {days_since_delivery} days after delivery, exceeding the {effective_window}-day window. AI approval overridden.",
+                True,
+            )
+
+        return ai_decision, None, False
+

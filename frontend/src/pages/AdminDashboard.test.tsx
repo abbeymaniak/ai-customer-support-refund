@@ -100,13 +100,14 @@ describe('AdminDashboardPage Component', () => {
     expect(markup).toContain('Claim Reference');
     expect(markup).toContain('Customer &amp; Order');
     expect(markup).toContain('Amount');
+    expect(markup).toContain('Risk &amp; Anomalies');
     expect(markup).toContain('AI Verdict');
     expect(markup).toContain('Override');
     expect(markup).toContain('Actions');
     expect(markup).toContain('No refund requests found');
   });
 
-  it('renders populated claims rows with formatted verdict badges and action buttons (covers: AC-5, AC-6)', () => {
+  it('renders populated claims rows with formatted verdict badges, risk scores, and anomaly chips (covers: AC-5, AC-8)', () => {
     const mockRefunds = {
       items: [
         {
@@ -125,6 +126,8 @@ describe('AdminDashboardPage Component', () => {
           decision: 'Approved' as const,
           confidence_score: 0.95,
           human_override: false,
+          risk_score: 0.4,
+          anomaly_flags: ['velocity_limit_exceeded'],
           created_at: '2026-09-23T00:00:00',
           updated_at: '2026-09-23T00:00:00',
         },
@@ -140,6 +143,8 @@ describe('AdminDashboardPage Component', () => {
     expect(markup).toContain('Sarah Jenkins');
     expect(markup).toContain('sarah.jenkins@example.com');
     expect(markup).toContain('$45.00');
+    expect(markup).toContain('40% Risk');
+    expect(markup).toContain('Velocity Spike');
     expect(markup).toContain('Approved');
     expect(markup).toContain('href="/admin/refunds/21111111-1111-1111-1111-111111111101"');
     expect(markup).toContain('Override');
