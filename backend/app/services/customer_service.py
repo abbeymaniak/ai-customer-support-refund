@@ -80,3 +80,15 @@ class CustomerService:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_customer_refunds(self, customer_id: uuid.UUID) -> list[RefundRequest]:
+        """Fetch all refund requests for a customer, most recent first."""
+        stmt = (
+            select(RefundRequest)
+            .where(RefundRequest.customer_id == customer_id)
+            .options(selectinload(RefundRequest.refund_items))
+            .order_by(RefundRequest.created_at.desc())
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+

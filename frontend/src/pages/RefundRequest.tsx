@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
   XCircle,
@@ -16,6 +16,8 @@ import {
   AlertCircle,
   Check,
   UserCheck,
+  History,
+  Clock,
 } from 'lucide-react';
 import { refundApi } from '../api/refunds';
 import type { RefundRequest as RefundRequestType } from '../types';
@@ -36,9 +38,9 @@ const SAMPLE_PERSONAS = [
 ];
 
 export const RefundRequestPage: React.FC = () => {
-  const [emailInput, setEmailInput] = useState('sarah.jenkins@example.com');
+  const [emailInput, setEmailInput] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
-  const [activeEmail, setActiveEmail] = useState('sarah.jenkins@example.com');
+  const [activeEmail, setActiveEmail] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [itemCondition, setItemCondition] = useState<string>('unopened');
@@ -67,14 +69,24 @@ export const RefundRequestPage: React.FC = () => {
     enabled: !!customerQuery.data?.id,
   });
 
+  // Fetch refund history for customer
+  const refundHistoryQuery = useQuery({
+    queryKey: ['customer-refunds', customerQuery.data?.id],
+    queryFn: () => refundApi.getCustomerRefunds(customerQuery.data!.id),
+    enabled: !!customerQuery.data?.id,
+  });
+
+
   const selectedOrder = ordersQuery.data?.find((o) => o.id === selectedOrderId);
   const selectedItem = selectedOrder?.items.find((i) => i.id === selectedItemId);
 
   // Submit refund mutation
+  const queryClient = useQueryClient();
   const refundMutation = useMutation({
     mutationFn: refundApi.submitRefundRequest,
     onSuccess: (data) => {
       setDecisionResult(data);
+      queryClient.invalidateQueries({ queryKey: ['customer-refunds'] });
     },
   });
 
@@ -683,6 +695,103 @@ export const RefundRequestPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Refund History Section */}
+      {customerQuery.data && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <History className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-lg font-bold text-slate-900">Refund History</h2>
+            </div>
+            <span className="text-xs font-medium text-slate-500">
+              {refundHistoryQuery.data?.length ?? 0} request{(refundHistoryQuery.data?.length ?? 0) !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {refundHistoryQuery.isLoading ? (
+            <div className="p-8 text-center text-slate-400 text-sm">Loading refund history...</div>
+          ) : refundHistoryQuery.isError ? (
+            <div className="p-8 text-center text-rose-500 text-sm">Failed to load refund history.</div>
+          ) : !refundHistoryQuery.data || refundHistoryQuery.data.length === 0 ? (
+            <div className="p-10 text-center space-y-2 text-slate-400">
+              <CheckCircle2 className="w-10 h-10 mx-auto stroke-1 text-slate-300" />
+              <p className="text-sm">No refund requests found for this customer.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-left">
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Request #</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Decision</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Override</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {refundHistoryQuery.data.map((refund) => (
+                    <tr key={refund.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono text-xs text-slate-700 font-medium">
+                          {refund.request_number || refund.id.slice(0, 8)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs text-slate-700">
+                          {refund.item_name || refund.reason_category}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-semibold text-slate-900">
+                          ${refund.amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                            refund.decision === 'Approved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : refund.decision === 'Denied'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : refund.decision === 'Escalated'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {refund.decision === 'Approved' && <CheckCircle2 className="w-3 h-3" />}
+                          {refund.decision === 'Denied' && <XCircle className="w-3 h-3" />}
+                          {refund.decision === 'Escalated' && <AlertTriangle className="w-3 h-3" />}
+                          {refund.decision === 'pending' && <Clock className="w-3 h-3" />}
+                          <span className="capitalize">{refund.decision}</span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {refund.human_override ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                            Overridden
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-500">
+                        {new Date(refund.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
