@@ -44,6 +44,10 @@ htmlcov/
 .claude
 docs/
 skills-lock.json
+AGENTS.md
+CLAUDE.md
+**/AGENTS.md
+**/CLAUDE.md
 
 # Explicitly track essential SQL seed data
 !data/seed.sql
