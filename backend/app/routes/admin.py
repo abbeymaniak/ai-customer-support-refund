@@ -35,6 +35,7 @@ async def list_refund_requests(
     end_date: datetime | None = Query(default=None, description="End date boundary (ISO 8601)"),
     sort_by: str = Query(default="created_at", description="Sort column: created_at, amount, request_number, decision"),
     sort_order: str = Query(default="desc", description="Sort direction: asc or desc"),
+    min_risk_score: float | None = Query(default=None, ge=0.0, le=1.0, description="Minimum risk score filter"),
     limit: int = Query(default=20, ge=1, le=100, description="Page record limit"),
     offset: int = Query(default=0, ge=0, description="Page record offset"),
     current_user: AdminUser = Depends(get_current_admin_user),
@@ -50,6 +51,7 @@ async def list_refund_requests(
         sort_order=sort_order,
         limit=limit,
         offset=offset,
+        min_risk_score=min_risk_score,
     )
 
 

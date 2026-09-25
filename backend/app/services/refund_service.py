@@ -14,9 +14,11 @@ from app.models.order import Order
 from app.models.refund_item import RefundItem
 from app.models.refund_request import RefundRequest
 from app.schemas.refund import RefundSubmissionPayload
+from app.services.anomaly_service import AnomalyService
 from app.services.audit_service import AuditService
 from app.services.customer_service import CustomerService
 from app.services.policy_service import PolicyService
+from app.services.security_service import SecurityService
 
 logger = structlog.get_logger()
 
@@ -38,7 +40,11 @@ class RefundService:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def process_refund(self, payload: RefundSubmissionPayload) -> RefundRequest:
+    async def process_refund(
+        self,
+        payload: RefundSubmissionPayload,
+        client_ip: str | None = None,
+    ) -> RefundRequest:
         """Execute two-phase refund evaluation, persist record, and log audit event."""
         # 1. Lookup Customer
         customer_service = CustomerService(self.db)
@@ -59,7 +65,7 @@ class RefundService:
             raise ValueError(f"Order '{payload.order_number}' not found.")
         if order.customer_id != customer.id:
             raise ValueError(
-                f"Order '{payload.order_number}' does not belong to customer '{payload.customer_email}'."
+                f"Order '{payload.order_number}' not found."
             )
 
         # 3. Lookup Order Item
@@ -73,23 +79,29 @@ class RefundService:
                 f"Item '{payload.item_id}' not found in order '{payload.order_number}'."
             )
 
-        # 4. Quantity and Prior Claim Check
+        # 4. Quantity and Amounts
         quantity = payload.quantity if payload.quantity > 0 else 1
         refund_amount = payload.amount if payload.amount > 0 else (order_item.price * quantity)
-
-        prior_refund_stmt = select(RefundItem).where(RefundItem.order_item_id == order_item.id)
-        prior_refund = (await self.db.execute(prior_refund_stmt)).scalar_one_or_none()
-        if prior_refund:
-            raise ValueError(
-                f"A refund request has already been submitted or processed for item '{payload.item_id}' (FLAG_DUPLICATE_CLAIM)."
-            )
-        has_prior_refund_for_item = False
 
         days_since_delivery = None
         if order.delivery_date:
             days_since_delivery = max(0, (datetime.utcnow() - order.delivery_date).days)
 
-        # 5. Phase 1: Deterministic Policy Evaluation
+        # 5. Anomaly Detection and Risk Scoring (AC-2, AC-3, AC-4)
+        risk_score, anomaly_flags = await AnomalyService.evaluate_anomalies(
+            db=self.db,
+            customer_id=customer.id,
+            order_id=order.id,
+            item_id=str(order_item.id),
+            amount=refund_amount,
+            customer_email=customer.email,
+            order_number=order.order_number,
+            source_ip=client_ip,
+        )
+
+        has_prior_refund_for_item = "conflicting_claim_detected" in anomaly_flags
+
+        # 6. Phase 1: Deterministic Policy Evaluation
         policy_service = PolicyService()
         rule_result = policy_service.evaluate_rules(
             days_since_delivery=days_since_delivery,
@@ -103,6 +115,7 @@ class RefundService:
             has_prior_refund_for_item=has_prior_refund_for_item,
         )
 
+        error_context = None
         final_decision = rule_result.preliminary_decision
         final_confidence = (
             0.95 if rule_result.is_approved else (1.0 if rule_result.is_denied else 0.5)
@@ -110,7 +123,7 @@ class RefundService:
         final_reasoning = "; ".join(rule_result.reasons)
         llm_audit_data = {}
 
-        # 6. Phase 2: AI Contextual Evaluation with Fallback
+        # 7. Phase 2: AI Contextual Evaluation with Fallback and Guardrails (AC-5, AC-6)
         ai_engine = AIDecisionEngine(self.db)
         try:
             ai_res = await ai_engine.evaluate_refund_request(
@@ -143,54 +156,115 @@ class RefundService:
                 },
             )
 
-            validated_ai = enforce_policy_guardrails(
-                preliminary_decision=rule_result.preliminary_decision,
-                ai_decision=ai_res,
-                rule_reasons=rule_result.reasons,
-                customer_risk_score=customer.risk_score,
-                customer_return_rate=customer.return_rate,
+            # Post-evaluation deterministic guardrail interceptor (AC-6)
+            guardrail_decision, guardrail_reason, was_overridden = policy_service.enforce_guardrails(
+                ai_decision=ai_res.get("decision", "Escalated"),
+                is_final_sale=order_item.is_final_sale,
+                days_since_delivery=days_since_delivery,
+                reason=payload.reason_category,
+                category=order_item.category,
             )
-            final_decision = validated_ai["decision"]
-            final_confidence = validated_ai["confidence_score"]
-            final_reasoning = validated_ai["explanation"]
-            llm_audit_data = {
-                "decision": validated_ai["decision"],
-                "confidence_score": validated_ai["confidence_score"],
-                "explanation": validated_ai["explanation"],
-                "policy_citations": validated_ai.get("policy_citations", []),
-                "matched_rules": validated_ai.get("matched_rules", []),
-                "audit_notes": validated_ai.get("audit_notes", ""),
-                "suggested_action": validated_ai.get("suggested_action", "process_refund"),
-                "guardrails_triggered": validated_ai.get("guardrails_triggered", []),
-                "telemetry": ai_res.get("telemetry", {}),
-            }
 
-        except AIProviderError as ai_err:
-            logger.info("ai_evaluation_fallback_active", reason=str(ai_err))
+            if was_overridden:
+                final_decision = "Denied"
+                final_confidence = 1.0
+                final_reasoning = guardrail_reason or "Non-negotiable policy guardrail enforced: Request is denied."
+                llm_audit_data = {
+                    "decision": "Denied",
+                    "confidence_score": 1.0,
+                    "explanation": final_reasoning,
+                    "guardrails_triggered": ["OVERRIDE_HARD_DENIAL"],
+                    "telemetry": ai_res.get("telemetry", {}),
+                }
+                rule_result.matched_rules.append("RULE_GUARDRAIL_OVERRIDE")
+                await SecurityService.record_security_event(
+                    db=self.db,
+                    event_type="policy_guardrail_breach_prevented",
+                    endpoint="/api/refunds",
+                    severity="high",
+                    matched_pattern="hard_policy_guardrail_override",
+                    payload_preview="AI approved claim on ineligible item. Overridden to Denied.",
+                    customer_email=customer.email,
+                    order_number=order.order_number,
+                    source_ip=client_ip,
+                )
+            elif anomaly_flags:
+                final_decision = "Escalated"
+                final_confidence = 0.5
+                final_reasoning = f"Claim flagged for human supervisor review due to detected anomalies: {', '.join(anomaly_flags)}."
+                llm_audit_data = {
+                    "decision": "Escalated",
+                    "confidence_score": 0.5,
+                    "explanation": final_reasoning,
+                    "anomaly_flags": anomaly_flags,
+                    "guardrails_triggered": ["ANOMALY_ESCALATION"],
+                    "telemetry": ai_res.get("telemetry", {}),
+                }
+            else:
+                validated_ai = enforce_policy_guardrails(
+                    preliminary_decision=rule_result.preliminary_decision,
+                    ai_decision=ai_res,
+                    rule_reasons=rule_result.reasons,
+                    customer_risk_score=customer.risk_score,
+                    customer_return_rate=customer.return_rate,
+                )
+                final_decision = validated_ai["decision"]
+                final_confidence = validated_ai["confidence_score"]
+                final_reasoning = validated_ai["explanation"]
+                llm_audit_data = {
+                    "decision": validated_ai["decision"],
+                    "confidence_score": validated_ai["confidence_score"],
+                    "explanation": validated_ai["explanation"],
+                    "policy_citations": validated_ai.get("policy_citations", []),
+                    "matched_rules": validated_ai.get("matched_rules", []),
+                    "audit_notes": validated_ai.get("audit_notes", ""),
+                    "suggested_action": validated_ai.get("suggested_action", "process_refund"),
+                    "guardrails_triggered": validated_ai.get("guardrails_triggered", []),
+                    "telemetry": ai_res.get("telemetry", {}),
+                }
+
+        except Exception as ai_err:
+            logger.warning("ai_evaluation_outage_fallback_active", error=str(ai_err))
+            error_context = {
+                "error_type": type(ai_err).__name__,
+                "message": str(ai_err),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            await SecurityService.record_security_event(
+                db=self.db,
+                event_type="ai_service_outage",
+                endpoint="/api/refunds",
+                severity="medium",
+                matched_pattern="ai_provider_error",
+                payload_preview=str(ai_err)[:300],
+                customer_email=customer.email,
+                order_number=order.order_number,
+                source_ip=client_ip,
+            )
             if rule_result.is_denied:
                 final_decision = "Denied"
                 final_confidence = 1.0
                 final_reasoning = f"Policy rule check: {'; '.join(rule_result.reasons)}"
-            elif rule_result.is_escalated:
+            elif anomaly_flags:
                 final_decision = "Escalated"
                 final_confidence = 0.5
-                final_reasoning = f"Policy escalation check: {'; '.join(rule_result.reasons)}"
+                final_reasoning = (
+                    f"Claim flagged for human supervisor review due to detected anomalies: {', '.join(anomaly_flags)}."
+                )
             else:
-                # Ambiguous/subjective claim without AI decision is escalated to human support
                 final_decision = "Escalated"
                 final_confidence = 0.5
                 final_reasoning = (
                     "Automated AI evaluation is temporarily unavailable. "
                     "Your claim has been routed to human support for expedited review."
                 )
-
             llm_audit_data = {
                 "fallback": True,
-                "reason": str(ai_err),
+                "error": str(ai_err),
                 "deterministic_decision": rule_result.preliminary_decision,
             }
 
-        # 7. Persist RefundRequest
+        # 8. Persist RefundRequest
         refund_req = RefundRequest(
             id=uuid.uuid4(),
             request_number=f"REF-{uuid.uuid4().hex[:10].upper()}",
@@ -217,11 +291,14 @@ class RefundService:
             ai_decision=final_decision,
             ai_confidence=final_confidence,
             ai_reasoning=final_reasoning,
+            risk_score=risk_score,
+            anomaly_flags=anomaly_flags,
+            error_context=error_context,
         )
         self.db.add(refund_req)
         await self.db.flush()
 
-        # 8. Persist RefundItem
+        # 9. Persist RefundItem
         refund_item = RefundItem(
             id=uuid.uuid4(),
             refund_request_id=refund_req.id,
@@ -233,7 +310,7 @@ class RefundService:
         self.db.add(refund_item)
         await self.db.flush()
 
-        # 9. Persist AuditLog
+        # 10. Persist AuditLog
         audit_service = AuditService(self.db)
         await audit_service.log_event(
             action="refund_evaluated",
@@ -243,6 +320,9 @@ class RefundService:
                 "decision": final_decision,
                 "confidence_score": final_confidence,
                 "reason": final_reasoning,
+                "risk_score": risk_score,
+                "anomaly_flags": anomaly_flags,
+                "error_context": error_context,
                 "matched_rules": rule_result.matched_rules,
                 "triggered_red_flags": rule_result.triggered_red_flags,
                 "guardrails_triggered": llm_audit_data.get("guardrails_triggered", []),

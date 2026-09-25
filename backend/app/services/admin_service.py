@@ -41,6 +41,7 @@ class AdminService:
         sort_order: str = "desc",
         limit: int = 20,
         offset: int = 0,
+        min_risk_score: float | None = None,
     ) -> RefundAdminListResponse:
         """Query paginated refund requests with server side filtering, search, and sorting."""
         bounded_limit = max(1, min(limit, 100))
@@ -65,6 +66,9 @@ class AdminService:
 
         if end_date:
             filters.append(RefundRequest.created_at <= end_date)
+
+        if min_risk_score is not None:
+            filters.append(RefundRequest.risk_score >= min_risk_score)
 
         # Count total matches
         count_stmt = (
@@ -98,6 +102,7 @@ class AdminService:
             "request_number": RefundRequest.request_number,
             "decision": RefundRequest.decision,
             "status": RefundRequest.status,
+            "risk_score": RefundRequest.risk_score,
         }
         order_col = sort_column_map.get(sort_by.lower(), RefundRequest.created_at)
         if sort_order.lower() == "asc":
@@ -133,6 +138,8 @@ class AdminService:
                     decision=req.decision,
                     confidence_score=req.confidence_score,
                     human_override=req.human_override,
+                    risk_score=req.risk_score,
+                    anomaly_flags=req.anomaly_flags or [],
                     created_at=req.created_at,
                     updated_at=req.updated_at,
                 )

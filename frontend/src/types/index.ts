@@ -74,6 +74,9 @@ export interface RefundRequest {
   human_override: boolean;
   override_reason?: string;
   override_by?: string;
+  risk_score?: number;
+  anomaly_flags?: string[];
+  error_context?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   customer?: Customer;
@@ -163,6 +166,8 @@ export interface RefundAdminListItem {
   decision: DecisionType;
   confidence_score?: number | null;
   human_override: boolean;
+  risk_score?: number;
+  anomaly_flags?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -203,6 +208,7 @@ export interface RefundListParams {
   end_date?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  min_risk_score?: number;
   limit?: number;
   offset?: number;
 }

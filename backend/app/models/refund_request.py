@@ -63,6 +63,11 @@ class RefundRequest(Base):
     override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     override_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Security and anomaly tracking fields
+    risk_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, index=True)
+    anomaly_flags: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    error_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, index=True, nullable=False
     )

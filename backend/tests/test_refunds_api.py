@@ -38,7 +38,7 @@ async def test_process_refund_final_sale_denial(async_client, db_session):
 
 @pytest.mark.asyncio
 async def test_process_refund_duplicate_claim_conflict(async_client):
-    """Test duplicate claim prevention returns HTTP 409 Conflict."""
+    """Test duplicate claim detection tags conflicting_claim_detected and escalates (AC-4)."""
     # First item of order ORD-2026-9001 was already refunded in seed.sql
     payload = {
         "customer_email": "sarah.jenkins@example.com",
@@ -51,8 +51,11 @@ async def test_process_refund_duplicate_claim_conflict(async_client):
         "item_condition": "opened_used",
     }
     response = await async_client.post("/api/refunds/process", json=payload)
-    assert response.status_code == 409
-    assert "already been submitted" in response.json()["detail"].lower()
+    assert response.status_code == 201
+    data = response.json()
+    assert data["decision"] == "Escalated"
+    assert "conflicting_claim_detected" in data["anomaly_flags"]
+    assert data["risk_score"] >= 0.3
 
 
 @pytest.mark.asyncio

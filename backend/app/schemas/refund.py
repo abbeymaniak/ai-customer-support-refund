@@ -101,6 +101,9 @@ class RefundRequestResponse(BaseModel):
     human_override: bool = False
     override_reason: str | None = None
     override_by: str | None = None
+    risk_score: float = 0.0
+    anomaly_flags: list[str] = Field(default_factory=list)
+    error_context: dict | None = None
     created_at: datetime
     updated_at: datetime
     refund_items: list[RefundItemDetail] = Field(default_factory=list)

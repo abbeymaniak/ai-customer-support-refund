@@ -143,6 +143,17 @@ export const RequestDetailPage: React.FC = () => {
                 )}
                 <span className="capitalize">{req.decision}</span>
               </span>
+              <span
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
+                  (req.risk_score ?? 0) >= 0.7
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : (req.risk_score ?? 0) >= 0.3
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {((req.risk_score ?? 0) * 100).toFixed(0)}% Risk
+              </span>
               {req.human_override && (
                 <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
                   Human Overridden
@@ -174,6 +185,20 @@ export const RequestDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* AI Outage Fallback Banner */}
+      {req.error_context && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+          <div className="font-bold text-sm flex items-center space-x-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span>AI Decision Provider Outage Fallback</span>
+          </div>
+          <p className="text-slate-800 text-xs mt-1">
+            Automated AI decision service was unavailable during evaluation (
+            <span className="font-mono">{String(req.error_context.error_type || 'AIProviderError')}</span>). The customer's claim was safely accepted and escalated to the supervisor review queue.
+          </p>
+        </div>
+      )}
+
       {/* Human Override Active Banner */}
       {req.human_override && (
         <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs space-y-1">
@@ -187,8 +212,8 @@ export const RequestDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* Three Column Grid for Context */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Four Column Grid for Context */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Customer Context */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
@@ -310,6 +335,53 @@ export const RequestDetailPage: React.FC = () => {
               <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-700 italic">
                 "{req.customer_explanation}"
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Security & Anomaly Telemetry */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+            <ShieldAlert className="w-4 h-4 text-indigo-600" />
+            <span>Security & Anomalies</span>
+          </h2>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between py-1 border-b border-slate-100 items-center">
+              <span className="text-slate-500">Risk Score</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                  (req.risk_score ?? 0) >= 0.7
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : (req.risk_score ?? 0) >= 0.3
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}
+              >
+                {((req.risk_score ?? 0) * 100).toFixed(0)}%
+              </span>
+            </div>
+            <div className="pt-2">
+              <span className="text-slate-500 block mb-1">Anomaly Flags:</span>
+              {req.anomaly_flags && req.anomaly_flags.length > 0 ? (
+                <div className="space-y-1.5">
+                  {req.anomaly_flags.map((flag) => (
+                    <div
+                      key={flag}
+                      className="flex items-center space-x-2 bg-rose-50 border border-rose-200 text-rose-800 p-2 rounded-lg"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                      <div className="font-semibold text-[11px]">
+                        {flag === 'velocity_limit_exceeded' && 'Velocity Spike: 3+ claims in 24h'}
+                        {flag === 'high_value_cluster' && 'High Value Cluster: Item > $200 or 7d sum > $500'}
+                        {flag === 'conflicting_claim_detected' && 'Conflicting Claim: Duplicate item claim in 30d'}
+                        {!['velocity_limit_exceeded', 'high_value_cluster', 'conflicting_claim_detected'].includes(flag) && flag}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-emerald-700 font-medium">Clean • No anomalies detected</span>
+              )}
             </div>
           </div>
         </div>

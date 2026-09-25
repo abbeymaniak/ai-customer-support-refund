@@ -91,7 +91,7 @@ async def process_refund_request(
 
     refund_service = RefundService(db)
     try:
-        refund_record = await refund_service.process_refund(payload)
+        refund_record = await refund_service.process_refund(payload, client_ip=client_ip)
     except ValueError as val_err:
         error_msg = str(val_err)
         if "not found" in error_msg.lower():
