@@ -75,7 +75,9 @@ class AIDecisionEngine:
         # Fallback to static settings if database is not reachable
         return {
             "llm": "ollama" if "ollama" in self.primary_model else "openai",
-            "llm_model": self.primary_model.split("/")[-1] if "/" in self.primary_model else self.primary_model,
+            "llm_model": self.primary_model.split("/")[-1]
+            if "/" in self.primary_model
+            else self.primary_model,
             "api_key": settings.openai_api_key,
             "api_base": settings.ollama_api_base if "ollama" in self.primary_model else None,
             "temperature": self.temperature,
@@ -154,9 +156,15 @@ class AIDecisionEngine:
             latency_ms = int((time.perf_counter() - start_time) * 1000)
             raw_text = response.choices[0].message.content
             tokens = {
-                "prompt": getattr(response.usage, "prompt_tokens", 0) if hasattr(response, "usage") else 0,
-                "completion": getattr(response.usage, "completion_tokens", 0) if hasattr(response, "usage") else 0,
-                "total": getattr(response.usage, "total_tokens", 0) if hasattr(response, "usage") else 0,
+                "prompt": getattr(response.usage, "prompt_tokens", 0)
+                if hasattr(response, "usage")
+                else 0,
+                "completion": getattr(response.usage, "completion_tokens", 0)
+                if hasattr(response, "usage")
+                else 0,
+                "total": getattr(response.usage, "total_tokens", 0)
+                if hasattr(response, "usage")
+                else 0,
             }
 
             return self._parse_and_validate_response(
@@ -200,7 +208,9 @@ class AIDecisionEngine:
             }
             return result
         except (json.JSONDecodeError, ValidationError) as parse_err:
-            logger.error("llm_response_schema_validation_failed", error=str(parse_err), raw=raw_text)
+            logger.error(
+                "llm_response_schema_validation_failed", error=str(parse_err), raw=raw_text
+            )
             # Safe recovery: escalate claim to human support without service crash (AC-6)
             return {
                 "decision": "Escalated",

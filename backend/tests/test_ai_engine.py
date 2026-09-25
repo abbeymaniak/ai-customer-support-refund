@@ -41,18 +41,22 @@ def test_ai_output_schema_invalid_decision():
 def test_ai_output_schema_confidence_bounds():
     """Test AC-1: Confidence score must be bounded between 0.0 and 1.0."""
     with pytest.raises(ValidationError):
-        AIOutputSchema.model_validate({
-            "decision": "Approved",
-            "confidence_score": 1.5,
-            "explanation": "Overconfident",
-        })
+        AIOutputSchema.model_validate(
+            {
+                "decision": "Approved",
+                "confidence_score": 1.5,
+                "explanation": "Overconfident",
+            }
+        )
 
     with pytest.raises(ValidationError):
-        AIOutputSchema.model_validate({
-            "decision": "Approved",
-            "confidence_score": -0.1,
-            "explanation": "Negative confidence",
-        })
+        AIOutputSchema.model_validate(
+            {
+                "decision": "Approved",
+                "confidence_score": -0.1,
+                "explanation": "Negative confidence",
+            }
+        )
 
 
 def test_sanitize_customer_text_truncation_and_cleaning():
@@ -184,7 +188,12 @@ async def test_ai_engine_mock_mode_evaluation():
     res = await engine.evaluate_refund_request(
         customer_info={"name": "Sarah", "return_rate": 0.0, "risk_score": 0.05},
         order_info={"order_number": "ORD-1", "order_date": "2026-09-01"},
-        request_info={"product_name": "Mouse", "price": 45.0, "quantity": 1, "is_final_sale": False},
+        request_info={
+            "product_name": "Mouse",
+            "price": 45.0,
+            "quantity": 1,
+            "is_final_sale": False,
+        },
         policy_info={"rules": []},
     )
 
@@ -217,14 +226,16 @@ async def test_ai_engine_raises_provider_error_on_missing_api_key():
     engine.primary_model = "gemini/gemini-1.5-flash"
 
     # Mock _resolve_active_provider returning gemini without api_key
-    engine._resolve_active_provider = AsyncMock(return_value={
-        "llm": "gemini",
-        "llm_model": "gemini-1.5-flash",
-        "api_key": None,
-        "api_base": None,
-        "temperature": 0.0,
-        "timeout_seconds": 3.0,
-    })
+    engine._resolve_active_provider = AsyncMock(
+        return_value={
+            "llm": "gemini",
+            "llm_model": "gemini-1.5-flash",
+            "api_key": None,
+            "api_base": None,
+            "temperature": 0.0,
+            "timeout_seconds": 3.0,
+        }
+    )
 
     with pytest.raises(AIProviderError) as exc_info:
         await engine.evaluate_refund_request(

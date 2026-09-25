@@ -47,12 +47,19 @@ async def test_ac2_velocity_anomaly_detection(async_client, db_session):
     item_id = "12222222-2222-2222-2222-222222222201"
 
     from app.models.customer import Customer
-    cust_res = (await db_session.execute(select(Customer).where(Customer.email == customer_email))).scalar_one()
+
+    cust_res = (
+        await db_session.execute(select(Customer).where(Customer.email == customer_email))
+    ).scalar_one()
 
     from app.models.order import Order
-    order_res = (await db_session.execute(select(Order).where(Order.order_number == order_number))).scalar_one()
+
+    order_res = (
+        await db_session.execute(select(Order).where(Order.order_number == order_number))
+    ).scalar_one()
 
     from sqlalchemy import delete
+
     # Clean up any prior test records for David Miller to test exact velocity boundary
     await db_session.execute(delete(RefundRequest).where(RefundRequest.customer_id == cust_res.id))
     await db_session.commit()
@@ -97,7 +104,10 @@ async def test_ac2_velocity_anomaly_detection(async_client, db_session):
     assert data["decision"] == "Escalated"
     assert "velocity_limit_exceeded" in data["anomaly_flags"]
     assert data["risk_score"] >= 0.4
-    assert "supervisor" in data["decision_reason"].lower() or "anomalies" in data["decision_reason"].lower()
+    assert (
+        "supervisor" in data["decision_reason"].lower()
+        or "anomalies" in data["decision_reason"].lower()
+    )
 
     # Check security log
     sec_stmt = select(SecurityLog).where(
@@ -261,7 +271,10 @@ async def test_ac6_deterministic_guardrail_override(async_client, db_session):
         # Decision MUST be overridden to Denied per AC-6
         assert data["decision"] == "Denied"
         assert data["confidence_score"] == 1.0
-        assert "guardrail" in data["decision_reason"].lower() or "final sale" in data["decision_reason"].lower()
+        assert (
+            "guardrail" in data["decision_reason"].lower()
+            or "final sale" in data["decision_reason"].lower()
+        )
 
         # Verify security log
         sec_stmt = select(SecurityLog).where(
@@ -402,12 +415,19 @@ async def test_anomaly_service_7d_cumulative_sum(async_client, db_session):
     item_id = "14444444-4444-4444-4444-444444444401"
 
     from app.models.customer import Customer
-    cust_res = (await db_session.execute(select(Customer).where(Customer.email == customer_email))).scalar_one()
+
+    cust_res = (
+        await db_session.execute(select(Customer).where(Customer.email == customer_email))
+    ).scalar_one()
 
     from app.models.order import Order
-    order_res = (await db_session.execute(select(Order).where(Order.order_number == order_number))).scalar_one()
+
+    order_res = (
+        await db_session.execute(select(Order).where(Order.order_number == order_number))
+    ).scalar_one()
 
     from sqlalchemy import delete
+
     # Clean up prior test requests
     await db_session.execute(delete(RefundRequest).where(RefundRequest.customer_id == cust_res.id))
     await db_session.commit()
@@ -451,4 +471,3 @@ async def test_anomaly_service_7d_cumulative_sum(async_client, db_session):
 
     assert "high_value_cluster" in data["anomaly_flags"]
     assert data["decision"] == "Escalated"
-

@@ -31,7 +31,9 @@ def upgrade() -> None:
             default=uuid.uuid4,
         ),
         sa.Column("event_type", sa.String(length=50), nullable=False),
-        sa.Column("severity", sa.String(length=20), nullable=False, server_default=sa.text("'high'")),
+        sa.Column(
+            "severity", sa.String(length=20), nullable=False, server_default=sa.text("'high'")
+        ),
         sa.Column("source_ip", sa.String(length=45), nullable=True),
         sa.Column("endpoint", sa.String(length=255), nullable=False),
         sa.Column("matched_pattern", sa.String(length=255), nullable=True),

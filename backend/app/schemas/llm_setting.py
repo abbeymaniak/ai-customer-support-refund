@@ -31,18 +31,10 @@ class LLMProviderUpdatePayload(BaseModel):
     """Payload for updating an LLM provider configuration."""
 
     llm_model: str | None = Field(None, description="Model identifier to use")
-    api_key: str | None = Field(
-        None, description="New API key (omit or null to leave unchanged)"
-    )
-    api_base: str | None = Field(
-        None, description="Custom API endpoint base URL"
-    )
-    is_active: bool | None = Field(
-        None, description="Set this provider as active"
-    )
-    temperature: float | None = Field(
-        None, ge=0.0, le=2.0, description="Sampling temperature"
-    )
+    api_key: str | None = Field(None, description="New API key (omit or null to leave unchanged)")
+    api_base: str | None = Field(None, description="Custom API endpoint base URL")
+    is_active: bool | None = Field(None, description="Set this provider as active")
+    temperature: float | None = Field(None, ge=0.0, le=2.0, description="Sampling temperature")
     timeout_seconds: float | None = Field(
         None, ge=1.0, le=60.0, description="Request timeout in seconds"
     )
@@ -54,7 +46,9 @@ class LLMTestProbePayload(BaseModel):
     llm: str = Field(..., description="Provider identifier: openai, ollama, gemini")
     llm_model: str | None = Field(None, description="Model to test")
     api_key: str | None = Field(None, description="API key to test (uses saved key if omitted)")
-    api_base: str | None = Field(None, description="API base URL to test (uses saved base if omitted)")
+    api_base: str | None = Field(
+        None, description="API base URL to test (uses saved base if omitted)"
+    )
 
 
 class LLTestProbeResponse(BaseModel):

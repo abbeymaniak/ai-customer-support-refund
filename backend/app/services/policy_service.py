@@ -373,9 +373,7 @@ class PolicyService:
         general = self.get_general_rules()
         is_defect = reason in ["damaged_on_arrival", "defective", "wrong_item_sent"]
         effective_window = (
-            general.damaged_defective_window_days
-            if is_defect
-            else general.return_window_days
+            general.damaged_defective_window_days if is_defect else general.return_window_days
         )
 
         if days_since_delivery is not None and days_since_delivery > effective_window:
@@ -386,4 +384,3 @@ class PolicyService:
             )
 
         return ai_decision, None, False
-

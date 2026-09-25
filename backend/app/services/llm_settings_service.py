@@ -88,9 +88,7 @@ class LLMSettingsService:
 
         # If activating this provider, deactivate all other providers first
         if payload.is_active is True:
-            await self.db.execute(
-                update(LLMProvider).values(is_active=False)
-            )
+            await self.db.execute(update(LLMProvider).values(is_active=False))
             provider.is_active = True
         elif payload.is_active is False:
             provider.is_active = False
