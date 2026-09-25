@@ -44,7 +44,8 @@ The system evaluates incoming refund requests against a structured, machine-read
 
 1. **Clone and Navigate:**
    ```bash
-   cd worknoon
+   git clone https://github.com/abbeymaniak/ai-customer-support-refund.git
+   cd ai-customer-support-refund
    ```
 
 2. **Configure Environment:**
