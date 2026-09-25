@@ -391,9 +391,9 @@ ON CONFLICT (email) DO NOTHING;
 -- 8. Seed Default Multi-Provider LLM Slots
 INSERT INTO llm_providers (id, llm, is_active, llm_model, api_key, api_base, temperature, timeout_seconds, updated_by)
 VALUES
-    ('bb111111-1111-1111-1111-111111111101', 'ollama', TRUE, 'llama3', NULL, 'http://host.docker.internal:11434', 0.0, 3.0, 'system_seed'),
-    ('bb222222-2222-2222-2222-222222222201', 'openai', FALSE, 'gpt-4o-mini', NULL, NULL, 0.0, 3.0, 'system_seed'),
-    ('bb333333-3333-3333-3333-333333333301', 'gemini', FALSE, 'gemini-1.5-flash', NULL, NULL, 0.0, 3.0, 'system_seed')
+    ('bb111111-1111-1111-1111-111111111101', 'ollama', TRUE, 'llama3', NULL, 'http://host.docker.internal:11434', 0.0, 60.0, 'system_seed'),
+    ('bb222222-2222-2222-2222-222222222201', 'openai', FALSE, 'gpt-4o-mini', NULL, NULL, 0.0, 15.0, 'system_seed'),
+    ('bb333333-3333-3333-3333-333333333301', 'gemini', FALSE, 'gemini-1.5-flash', NULL, NULL, 0.0, 15.0, 'system_seed')
 ON CONFLICT (llm) DO NOTHING;
 
 -- 9. Initialize Alembic Head Version
