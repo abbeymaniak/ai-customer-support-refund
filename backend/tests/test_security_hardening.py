@@ -20,6 +20,8 @@ from sqlalchemy import func, select
 from app.ai.engine import AIDecisionEngine, AIProviderError
 from app.models.refund_request import RefundRequest
 from app.models.security import SecurityLog
+from app.services.anomaly_service import AnomalyService
+from app.services.policy_service import PolicyService
 
 
 @pytest.mark.asyncio
@@ -345,3 +347,107 @@ async def test_ac8_admin_risk_score_and_anomaly_visibility(admin_auth_client, db
     assert "risk_score" in detail
     assert "anomaly_flags" in detail
     assert "error_context" in detail
+
+
+def test_guardrail_non_refundable_category():
+    """Verify deterministic policy guardrail overrides AI approval for digital or gift card categories."""
+    svc = PolicyService()
+    decision, reason, overridden = svc.enforce_guardrails(
+        ai_decision="Approved",
+        is_final_sale=False,
+        category="gift_card",
+    )
+    assert decision == "denied"
+    assert overridden is True
+    assert "strictly non-refundable" in reason.lower()
+
+
+def test_guardrail_expired_window():
+    """Verify deterministic policy guardrail overrides AI approval when days since delivery exceeds return window."""
+    svc = PolicyService()
+    decision, reason, overridden = svc.enforce_guardrails(
+        ai_decision="Approved",
+        is_final_sale=False,
+        days_since_delivery=95,
+        reason="unwanted",
+    )
+    assert decision == "denied"
+    assert overridden is True
+    assert "exceeding" in reason.lower()
+
+
+def test_anomaly_service_pure_scoring():
+    """Verify AnomalyService scoring rules and cap behavior."""
+    # Empty flags
+    score0 = AnomalyService.calculate_risk_score([])
+    assert score0 == 0.0
+
+    # Single flag
+    score1 = AnomalyService.calculate_risk_score(["velocity_limit_exceeded"])
+    assert score1 == 0.4
+
+    # Multiple flags composite capped at 1.0
+    score_all = AnomalyService.calculate_risk_score(
+        ["velocity_limit_exceeded", "high_value_cluster", "conflicting_claim_detected"]
+    )
+    assert score_all == 1.0
+
+
+@pytest.mark.asyncio
+async def test_anomaly_service_7d_cumulative_sum(async_client, db_session):
+    """Verify cumulative 7-day refund sum > $500 triggers high_value_cluster anomaly."""
+    customer_email = "marcus.vance@example.com"
+    order_number = "ORD-2026-9120"
+    item_id = "14444444-4444-4444-4444-444444444401"
+
+    from app.models.customer import Customer
+    cust_res = (await db_session.execute(select(Customer).where(Customer.email == customer_email))).scalar_one()
+
+    from app.models.order import Order
+    order_res = (await db_session.execute(select(Order).where(Order.order_number == order_number))).scalar_one()
+
+    from sqlalchemy import delete
+    # Clean up prior test requests
+    await db_session.execute(delete(RefundRequest).where(RefundRequest.customer_id == cust_res.id))
+    await db_session.commit()
+
+    # Seed 3 prior approved requests totalling $400 in past 3 days
+    for i in range(2):
+        prior = RefundRequest(
+            id=uuid.uuid4(),
+            request_number=f"REF-SUM-{uuid.uuid4().hex[:8].upper()}",
+            customer_id=cust_res.id,
+            order_id=order_res.id,
+            item_id=f"prior-item-{i}",
+            item_name="Prior Item",
+            amount=200.0,
+            total_refund_amount=200.0,
+            currency="USD",
+            reason_category="unwanted",
+            customer_explanation="Prior claim building up 7-day sum.",
+            status="approved",
+            decision="Approved",
+            risk_score=0.0,
+            anomaly_flags=[],
+        )
+        db_session.add(prior)
+    await db_session.commit()
+
+    # Now submit another request for $150 (Total 7-day sum = $400 + $150 = $550 > $500 threshold)
+    payload = {
+        "customer_email": customer_email,
+        "order_number": order_number,
+        "item_id": item_id,
+        "amount": 150.0,
+        "reason_category": "defective",
+        "customer_explanation": "Defective item pushing past 7-day sum limit.",
+        "quantity": 1,
+        "item_condition": "opened_used",
+    }
+    response = await async_client.post("/api/refunds/process", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+
+    assert "high_value_cluster" in data["anomaly_flags"]
+    assert data["decision"] == "Escalated"
+

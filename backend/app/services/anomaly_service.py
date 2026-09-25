@@ -141,6 +141,12 @@ class AnomalyService:
                 )
 
         # 4. Composite Risk Score Calculation
+        composite_risk = cls.calculate_risk_score(anomaly_flags)
+        return composite_risk, anomaly_flags
+
+    @classmethod
+    def calculate_risk_score(cls, anomaly_flags: list[str]) -> float:
+        """Calculate composite risk score bounded between 0.0 and 1.0 from anomaly flags."""
         risk_score = 0.0
         if "velocity_limit_exceeded" in anomaly_flags:
             risk_score += 0.4
@@ -149,5 +155,5 @@ class AnomalyService:
         if "conflicting_claim_detected" in anomaly_flags:
             risk_score += 0.3
 
-        composite_risk = min(1.0, round(risk_score, 2))
-        return composite_risk, anomaly_flags
+        return min(1.0, round(risk_score, 2))
+
