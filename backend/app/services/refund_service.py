@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.ai.engine import AIDecisionEngine, AIProviderError
+from app.ai.engine import AIDecisionEngine
 from app.ai.validators import enforce_policy_guardrails
 from app.models.order import Order
 from app.models.refund_item import RefundItem

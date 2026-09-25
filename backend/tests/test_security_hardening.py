@@ -15,7 +15,7 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.ai.engine import AIDecisionEngine, AIProviderError
 from app.models.refund_request import RefundRequest
@@ -179,6 +179,7 @@ async def test_ac5_ai_service_outage_graceful_fallback(async_client, db_session)
     item_uuid = uuid.UUID(item_id)
 
     from sqlalchemy import delete
+
     from app.models.refund_item import RefundItem
 
     # Clean up prior test requests for Alex Rivera to test pure AI outage fallback
