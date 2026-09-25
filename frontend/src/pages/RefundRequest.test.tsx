@@ -57,8 +57,8 @@ describe('RefundRequestPage Component', () => {
   it('renders real-time validation elements and security perimeter markers (covers: AC-7)', () => {
     const markup = renderWithClient(<RefundRequestPage />);
 
-    // Default pre-filled persona email is valid
-    expect(markup).toContain('sarah.jenkins@example.com');
+    // Email starts empty, user must select persona or enter email
+    expect(markup).toContain('value=""');
     expect(markup).toContain('Lookup');
 
     // Quick persona selectors allow instant valid email switching

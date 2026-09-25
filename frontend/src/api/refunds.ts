@@ -26,6 +26,11 @@ export const refundApi = {
     return data;
   },
 
+  async getCustomerRefunds(customerId: string): Promise<RefundRequest[]> {
+    const { data } = await apiClient.get<RefundRequest[]>(`/customers/${customerId}/refunds`);
+    return data;
+  },
+
   // Refund Processing
   async submitRefundRequest(payload: RefundSubmissionPayload): Promise<RefundRequest> {
     const { data } = await apiClient.post<RefundRequest>('/refunds/process', payload);
