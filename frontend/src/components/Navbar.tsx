@@ -23,12 +23,12 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Brand */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-100 group-hover:scale-105 transition-transform duration-200">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <span className="font-bold text-lg text-slate-900 tracking-tight">AutoRefund</span>
-              <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+              <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
                 AI Engine
               </span>
             </div>
@@ -52,7 +52,7 @@ export const Navbar: React.FC = () => {
               to="/admin"
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                 location.pathname === '/admin' || location.pathname.startsWith('/admin/refunds')
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                  ? 'bg-emerald-50 text-emerald-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -65,7 +65,7 @@ export const Navbar: React.FC = () => {
                 to="/admin/settings"
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive('/admin/settings')
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
@@ -104,7 +104,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <Link
                   to="/admin/login"
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold transition-colors"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>Staff Login</span>

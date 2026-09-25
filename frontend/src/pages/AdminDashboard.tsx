@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Clock,
-  Sparkles,
+  BrainCircuit,
   ChevronLeft,
   ChevronRight,
   DollarSign,
@@ -260,11 +260,11 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider flex items-center justify-between">
+          <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider flex items-center justify-between">
             <span>Refunded</span>
-            <DollarSign className="w-3.5 h-3.5 text-indigo-500" />
+            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
           </span>
-          <div className="text-2xl font-black text-indigo-900">
+          <div className="text-2xl font-black text-emerald-900">
             {stats
               ? `$${stats.total_refunded_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
               : '—'}
@@ -283,7 +283,7 @@ export const AdminDashboardPage: React.FC = () => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by customer name, email, order, or request number..."
-              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
               aria-label="Search refund claims"
             />
             {searchInput && (
@@ -461,7 +461,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex items-center justify-center space-x-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
                       <span>Loading claims data...</span>
                     </div>
                   </td>
@@ -481,7 +481,7 @@ export const AdminDashboardPage: React.FC = () => {
                     key={req.id}
                     onClick={() => setSelectedClaimId(req.id)}
                     className={`cursor-pointer transition ${
-                      selectedClaimId === req.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50/80'
+                      selectedClaimId === req.id ? 'bg-emerald-50/50' : 'hover:bg-slate-50/80'
                     }`}
                   >
                     <td className="px-6 py-4 font-mono font-medium text-slate-900 text-xs">
@@ -574,7 +574,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                     <td className="px-6 py-4 text-xs">
                       {req.human_override ? (
-                        <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-semibold text-[11px]">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px]">
                           Supervisor
                         </span>
                       ) : (
@@ -595,7 +595,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </button>
                       <Link
                         to={`/admin/refunds/${req.id}`}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition"
+                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition"
                         aria-label={`Audit detail for ${req.request_number}`}
                       >
                         <span>Audit</span>
@@ -691,7 +691,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Link
                   to={`/admin/refunds/${selectedClaimId}`}
-                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition"
                 >
                   <span>Full View</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -710,7 +710,7 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {claimDetailQuery.isLoading ? (
                 <div className="py-20 text-center text-slate-400 space-y-2">
-                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-600" />
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600" />
                   <p className="text-xs">Loading comprehensive claim data...</p>
                 </div>
               ) : selectedDetail ? (
@@ -738,7 +738,7 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Customer Risk & Profile */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
-                      <User className="w-3.5 h-3.5 text-indigo-600" />
+                      <User className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Customer Context & Risk</span>
                     </h3>
                     <div className="bg-white border border-slate-200 rounded-xl p-4 text-xs space-y-2">
@@ -798,7 +798,7 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Security & Anomaly Telemetry */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />
+                      <ShieldAlert className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Security & Anomaly Telemetry</span>
                     </h3>
                     <div className="bg-white border border-slate-200 rounded-xl p-4 text-xs space-y-2.5">
@@ -855,12 +855,12 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* AI Reasoning & Policy Evaluations */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <BrainCircuit className="w-3.5 h-3.5 text-emerald-600" />
                       <span>AI Reasoning & Guardrails</span>
                     </h3>
-                    <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 text-xs space-y-3">
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-4 text-xs space-y-3">
                       <div>
-                        <span className="text-indigo-900 font-bold block mb-1">
+                        <span className="text-emerald-900 font-bold block mb-1">
                           Generated Justification:
                         </span>
                         <p className="text-slate-700 leading-relaxed">
@@ -871,9 +871,9 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
 
                       {selectedDetail.confidence_score && (
-                        <div className="flex justify-between items-center pt-2 border-t border-indigo-100 text-xs">
-                          <span className="text-indigo-950 font-medium">Model Confidence:</span>
-                          <span className="font-bold text-indigo-900">
+                        <div className="flex justify-between items-center pt-2 border-t border-emerald-100 text-xs">
+                          <span className="text-emerald-950 font-medium">Model Confidence:</span>
+                          <span className="font-bold text-emerald-900">
                             {(selectedDetail.confidence_score * 100).toFixed(1)}%
                           </span>
                         </div>
@@ -933,12 +933,12 @@ export const AdminDashboardPage: React.FC = () => {
 
                   {/* Supervisor Override Banner if active */}
                   {selectedDetail.human_override && (
-                    <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs space-y-1">
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
                       <div className="font-bold flex items-center space-x-1.5">
                         <span>Supervisor Override Applied</span>
                       </div>
-                      <p className="text-purple-800">{selectedDetail.override_reason}</p>
-                      <span className="text-purple-600 text-[11px] block mt-1">
+                      <p className="text-amber-800">{selectedDetail.override_reason}</p>
+                      <span className="text-amber-600 text-[11px] block mt-1">
                         By {selectedDetail.override_by || 'Supervisor'}
                       </span>
                     </div>
@@ -952,7 +952,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
                 <button
                   onClick={() => handleOpenOverride(selectedDetail)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition shadow-sm"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition shadow-sm"
                 >
                   Manual Decision Override
                 </button>
@@ -1008,7 +1008,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <select
                   value={overrideDecision}
                   onChange={(e) => setOverrideDecision(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="Approved">Approved</option>
                   <option value="Denied">Denied</option>
@@ -1026,7 +1026,7 @@ export const AdminDashboardPage: React.FC = () => {
                   value={overrideReason}
                   onChange={(e) => setOverrideReason(e.target.value)}
                   placeholder="Explain why this decision is being manually overridden..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-slate-400"
                 />
               </div>
 
@@ -1041,7 +1041,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={overrideMutation.isPending}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
                 >
                   {overrideMutation.isPending ? 'Applying...' : 'Confirm Override'}
                 </button>

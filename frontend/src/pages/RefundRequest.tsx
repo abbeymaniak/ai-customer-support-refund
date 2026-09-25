@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Package,
-  Sparkles,
+  Loader2,
   Search,
   HelpCircle,
   RotateCcw,
@@ -15,6 +15,7 @@ import {
   FileCheck,
   AlertCircle,
   Check,
+  UserCheck,
 } from 'lucide-react';
 import { refundApi } from '../api/refunds';
 import type { RefundRequest as RefundRequestType } from '../types';
@@ -146,7 +147,7 @@ export const RefundRequestPage: React.FC = () => {
       {/* Demo Persona Quick-Picker */}
       <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200">
         <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Quick Load Test Persona (Evaluation Scenarios)</span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -157,7 +158,7 @@ export const RefundRequestPage: React.FC = () => {
               onClick={() => handleSelectPersona(p.email)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 activeEmail === p.email
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
               }`}
             >
@@ -174,7 +175,7 @@ export const RefundRequestPage: React.FC = () => {
           {/* Customer Lookup Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-              <Search className="w-5 h-5 text-indigo-600" />
+              <Search className="w-5 h-5 text-emerald-600" />
               <span>Step 1: Customer Account</span>
             </h2>
 
@@ -195,7 +196,7 @@ export const RefundRequestPage: React.FC = () => {
                       ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
                       : emailTouched && isEmailValid
                         ? 'border-emerald-300 focus:ring-emerald-500 bg-emerald-50/20'
-                        : 'border-slate-300 focus:ring-indigo-500'
+                        : 'border-slate-300 focus:ring-emerald-500'
                   }`}
                 />
                 <button
@@ -231,7 +232,7 @@ export const RefundRequestPage: React.FC = () => {
             )}
 
             {customerQuery.data && (
-              <div className="mt-4 p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-wrap gap-4 text-xs">
+              <div className="mt-4 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-wrap gap-4 text-xs">
                 <div>
                   <span className="text-slate-500 block">Name</span>
                   <strong className="text-slate-900 text-sm">{customerQuery.data.name}</strong>
@@ -275,7 +276,7 @@ export const RefundRequestPage: React.FC = () => {
               className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6"
             >
               <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Package className="w-5 h-5 text-indigo-600" />
+                <Package className="w-5 h-5 text-emerald-600" />
                 <span>Step 2: Select Order & Item</span>
               </h2>
 
@@ -300,7 +301,7 @@ export const RefundRequestPage: React.FC = () => {
                     setDecisionResult(null);
                   }}
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">Choose an Order</option>
                   {ordersQuery.data?.map((o) => (
@@ -324,7 +325,7 @@ export const RefundRequestPage: React.FC = () => {
                         key={item.id}
                         className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
                           selectedItemId === item.id
-                            ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
+                            ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
                             : 'border-slate-200 hover:bg-slate-50'
                         }`}
                       >
@@ -338,7 +339,7 @@ export const RefundRequestPage: React.FC = () => {
                               setSelectedItemId(item.id);
                               setDecisionResult(null);
                             }}
-                            className="text-indigo-600 focus:ring-indigo-500"
+                            className="text-emerald-600 focus:ring-emerald-500"
                           />
                           <div>
                             <div className="flex items-center space-x-2">
@@ -373,7 +374,7 @@ export const RefundRequestPage: React.FC = () => {
                     <select
                       value={itemCondition}
                       onChange={(e) => setItemCondition(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="unopened">Unopened (Original packaging)</option>
                       <option value="opened_used">Opened / Used</option>
@@ -391,7 +392,7 @@ export const RefundRequestPage: React.FC = () => {
                       max={selectedItem.quantity || 1}
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -407,7 +408,7 @@ export const RefundRequestPage: React.FC = () => {
                     <select
                       value={reasonCategory}
                       onChange={(e) => setReasonCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="defective">
                         Item defective or does not function as advertised
@@ -451,7 +452,7 @@ export const RefundRequestPage: React.FC = () => {
                             ? 'border-emerald-300 focus:ring-emerald-500'
                             : explanation.length > 0
                               ? 'border-amber-300 focus:ring-amber-500'
-                              : 'border-slate-300 focus:ring-indigo-500'
+                              : 'border-slate-300 focus:ring-emerald-500'
                       }`}
                     />
                     {explanation.length > 0 && explanationLength < EXPLANATION_MIN && (
@@ -481,7 +482,7 @@ export const RefundRequestPage: React.FC = () => {
                   {/* Security Perimeter Notice */}
                   <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
                     <div className="flex items-center space-x-1.5 font-semibold text-slate-700">
-                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
                       <span>Security & Prompt Injection Protection</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-normal">
@@ -500,11 +501,11 @@ export const RefundRequestPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={refundMutation.isPending || !isExplanationValid}
-                    className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-100 transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-50"
+                    className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-100 transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-50"
                   >
                     {refundMutation.isPending ? (
                       <>
-                        <Sparkles className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         <span>Policy & AI Engine Evaluating...</span>
                       </>
                     ) : (
@@ -528,7 +529,7 @@ export const RefundRequestPage: React.FC = () => {
             <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <span>AI Decision Engine Verdict</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -587,7 +588,7 @@ export const RefundRequestPage: React.FC = () => {
                 {/* AI Reasoning Narrative */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
-                    <FileCheck className="w-4 h-4 text-indigo-600" />
+                    <FileCheck className="w-4 h-4 text-emerald-600" />
                     <span>Decision Reasoning</span>
                   </h4>
                   <p className="text-sm text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-slate-200 leading-relaxed">
@@ -620,7 +621,7 @@ export const RefundRequestPage: React.FC = () => {
                     <ul className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
                       {policyChecks.citations.map((c, idx) => (
                         <li key={idx} className="flex items-start space-x-2">
-                          <span className="text-indigo-600 font-bold">•</span>
+                          <span className="text-emerald-600 font-bold">•</span>
                           <span>{c}</span>
                         </li>
                       ))}
@@ -648,26 +649,26 @@ export const RefundRequestPage: React.FC = () => {
             ) : refundMutation.isPending ? (
               <div className="py-14 text-center space-y-5">
                 <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full bg-indigo-100 animate-ping opacity-75"></div>
-                  <div className="relative rounded-full bg-indigo-600 p-3.5 text-white shadow-lg shadow-indigo-100">
-                    <Sparkles className="w-8 h-8 animate-spin" />
+                  <div className="absolute inset-0 rounded-full bg-emerald-100 animate-ping opacity-75"></div>
+                  <div className="relative rounded-full bg-emerald-600 p-3.5 text-white shadow-lg shadow-emerald-100">
+                    <Loader2 className="w-8 h-8 animate-spin" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-base font-bold text-slate-800 flex items-center justify-center space-x-1">
                     <span>Evaluating your request</span>
                     <span className="inline-flex items-center space-x-1 ml-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '300ms' }}></span>
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
                     Analyzing order history, product condition, and store policies with the decision engine.
                   </p>
                 </div>
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-xs text-emerald-700 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                   <span>AI reasoning in progress (few seconds for local models)</span>
                 </div>
               </div>

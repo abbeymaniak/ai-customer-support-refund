@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Cpu,
-  Sparkles,
+  Bot,
   Zap,
   CheckCircle2,
   XCircle,
@@ -35,7 +35,7 @@ const PROVIDER_METADATA: Record<
     title: string;
     description: string;
     icon: React.ElementType;
-    badgeColor: 'emerald' | 'indigo' | 'purple';
+    badgeColor: 'emerald' | 'emerald' | 'teal';
     defaultModels: string[];
   }
 > = {
@@ -50,8 +50,8 @@ const PROVIDER_METADATA: Record<
     title: 'OpenAI',
     description:
       'Commercial cloud models for high accuracy reasoning and strict JSON schema output.',
-    icon: Sparkles,
-    badgeColor: 'indigo',
+    icon: Bot,
+    badgeColor: 'emerald',
     defaultModels: ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
   },
   gemini: {
@@ -59,7 +59,7 @@ const PROVIDER_METADATA: Record<
     description:
       'Fast, multimodal cloud model family with generous context windows and low latency.',
     icon: Zap,
-    badgeColor: 'purple',
+    badgeColor: 'teal',
     defaultModels: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
   },
 };
@@ -139,10 +139,10 @@ export const AdminSettingsPage: React.FC = () => {
 
       {/* Active Provider Status Banner */}
       {activeProvider && (
-        <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-gradient-to-r from-emerald-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-wider font-semibold text-indigo-300">
+              <span className="text-xs uppercase tracking-wider font-semibold text-emerald-300">
                 Active Evaluation Provider
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -201,7 +201,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
     title: provider.llm.toUpperCase(),
     description: 'Custom language model provider.',
     icon: Cpu,
-    badgeColor: 'indigo',
+    badgeColor: 'emerald',
     defaultModels: [provider.llm_model],
   };
 
@@ -263,7 +263,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
     <Card
       className={`relative flex flex-col justify-between transition-all duration-200 ${
         provider.is_active
-          ? 'ring-2 ring-indigo-600 shadow-md bg-white'
+          ? 'ring-2 ring-emerald-600 shadow-md bg-white'
           : 'bg-white hover:border-slate-300'
       }`}
     >
@@ -273,7 +273,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                provider.is_active ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                provider.is_active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
               }`}
             >
               <IconComponent className="w-5 h-5" />
@@ -305,7 +305,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
               placeholder="e.g. gpt-4o-mini"
             />
           </div>
@@ -318,7 +318,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
                 onClick={() => setModel(preset)}
                 className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
                   model === preset
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-semibold'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -338,7 +338,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
               type="text"
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
-              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
               placeholder="http://host.docker.internal:11434"
             />
           </div>
@@ -361,7 +361,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={provider.has_api_key ? 'Enter new key to update...' : 'sk-...'}
-                className="w-full text-xs font-mono border border-slate-300 rounded-lg pl-3 pr-9 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="w-full text-xs font-mono border border-slate-300 rounded-lg pl-3 pr-9 py-2 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
               />
               <button
                 type="button"
@@ -388,7 +388,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
               max="1.0"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value) || 0.0)}
-              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
 
@@ -404,7 +404,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider, onActivate, isAct
               max="120"
               value={timeoutSeconds}
               onChange={(e) => setTimeoutSeconds(parseInt(e.target.value, 10) || 30)}
-              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="w-full text-xs font-mono border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
         </div>

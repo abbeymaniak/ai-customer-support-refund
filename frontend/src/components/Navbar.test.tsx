@@ -79,6 +79,6 @@ describe('Navbar Component', () => {
       </MemoryRouter>
     );
 
-    expect(markup).toContain('bg-indigo-50 text-indigo-700 font-semibold');
+    expect(markup).toContain('bg-emerald-50 text-emerald-700 font-semibold');
   });
 });
