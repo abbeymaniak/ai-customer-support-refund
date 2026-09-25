@@ -11,7 +11,7 @@ import {
   User,
   History,
   ShoppingBag,
-  Sparkles,
+  BrainCircuit,
   Cpu,
   RefreshCw,
   X,
@@ -84,7 +84,7 @@ export const RequestDetailPage: React.FC = () => {
   if (requestQuery.isLoading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 text-center text-slate-500 space-y-3">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-600" />
+        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600" />
         <p className="text-sm font-medium">Loading comprehensive claim review...</p>
       </div>
     );
@@ -94,7 +94,7 @@ export const RequestDetailPage: React.FC = () => {
     return (
       <div className="max-w-6xl mx-auto px-4 py-16 text-center space-y-4">
         <p className="text-slate-600">Refund request not found.</p>
-        <Link to="/admin" className="text-indigo-600 font-semibold hover:underline text-sm">
+        <Link to="/admin" className="text-emerald-600 font-semibold hover:underline text-sm">
           Return to Console
         </Link>
       </div>
@@ -155,7 +155,7 @@ export const RequestDetailPage: React.FC = () => {
                 {((req.risk_score ?? 0) * 100).toFixed(0)}% Risk
               </span>
               {req.human_override && (
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
                   Human Overridden
                 </span>
               )}
@@ -177,7 +177,7 @@ export const RequestDetailPage: React.FC = () => {
             </div>
             <button
               onClick={handleOpenOverride}
-              className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition shadow-sm"
+              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition shadow-sm"
             >
               Manual Override
             </button>
@@ -201,12 +201,12 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* Human Override Active Banner */}
       {req.human_override && (
-        <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs space-y-1">
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
           <div className="font-bold text-sm flex items-center space-x-1.5">
             <span>Supervisor Override Justification</span>
           </div>
           <p className="text-slate-800 text-sm mt-1">{req.override_reason}</p>
-          <span className="text-purple-600 font-medium block pt-1">
+          <span className="text-amber-600 font-medium block pt-1">
             Authorized by {req.override_by || 'Supervisor'}
           </span>
         </div>
@@ -217,7 +217,7 @@ export const RequestDetailPage: React.FC = () => {
         {/* 1. Customer Context */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <User className="w-4 h-4 text-indigo-600" />
+            <User className="w-4 h-4 text-emerald-600" />
             <span>Customer Profile</span>
           </h2>
           <div className="space-y-2 text-xs">
@@ -268,7 +268,7 @@ export const RequestDetailPage: React.FC = () => {
         {/* 2. Order Context */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <ShoppingBag className="w-4 h-4 text-indigo-600" />
+            <ShoppingBag className="w-4 h-4 text-emerald-600" />
             <span>Order Context</span>
           </h2>
           <div className="space-y-2 text-xs">
@@ -312,7 +312,7 @@ export const RequestDetailPage: React.FC = () => {
         {/* 3. Claim Context */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <FileText className="w-4 h-4 text-indigo-600" />
+            <FileText className="w-4 h-4 text-emerald-600" />
             <span>Claim Details</span>
           </h2>
           <div className="space-y-2 text-xs">
@@ -342,7 +342,7 @@ export const RequestDetailPage: React.FC = () => {
         {/* 4. Security & Anomaly Telemetry */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <ShieldAlert className="w-4 h-4 text-indigo-600" />
+            <ShieldAlert className="w-4 h-4 text-emerald-600" />
             <span>Security & Anomalies</span>
           </h2>
           <div className="space-y-2 text-xs">
@@ -391,7 +391,7 @@ export const RequestDetailPage: React.FC = () => {
       {req.order?.items && req.order.items.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-3 p-6">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <ShoppingBag className="w-4 h-4 text-indigo-600" />
+            <ShoppingBag className="w-4 h-4 text-emerald-600" />
             <span>Order Line Items</span>
           </h2>
           <div className="overflow-x-auto">
@@ -437,7 +437,7 @@ export const RequestDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <BrainCircuit className="w-4 h-4 text-emerald-600" />
             <span>AI Reasoning Chain & Guardrails</span>
           </h2>
           <div className="space-y-4 text-xs">
@@ -521,7 +521,7 @@ export const RequestDetailPage: React.FC = () => {
         {/* Telemetry metrics */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-            <Cpu className="w-4 h-4 text-indigo-600" />
+            <Cpu className="w-4 h-4 text-emerald-600" />
             <span>AI Telemetry</span>
           </h2>
           <div className="space-y-3 text-xs">
@@ -560,7 +560,7 @@ export const RequestDetailPage: React.FC = () => {
       {/* Audit Log Trail Timeline */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-          <History className="w-4 h-4 text-indigo-600" />
+          <History className="w-4 h-4 text-emerald-600" />
           <span>Chronological Compliance Audit Trail</span>
         </h2>
         <div className="space-y-4">
@@ -572,7 +572,7 @@ export const RequestDetailPage: React.FC = () => {
             logs.map((log) => (
               <div
                 key={log.id}
-                className="flex space-x-3 text-xs border-l-2 border-indigo-300 pl-4 py-1"
+                className="flex space-x-3 text-xs border-l-2 border-emerald-300 pl-4 py-1"
               >
                 <div className="space-y-1 w-full">
                   <div className="flex items-center justify-between">
@@ -634,7 +634,7 @@ export const RequestDetailPage: React.FC = () => {
                 <select
                   value={overrideDecision}
                   onChange={(e) => setOverrideDecision(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="Approved">Approved</option>
                   <option value="Denied">Denied</option>
@@ -652,7 +652,7 @@ export const RequestDetailPage: React.FC = () => {
                   value={overrideReason}
                   onChange={(e) => setOverrideReason(e.target.value)}
                   placeholder="State the justification for this override..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-slate-400"
                 />
               </div>
 
@@ -667,7 +667,7 @@ export const RequestDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={overrideMutation.isPending}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
                 >
                   {overrideMutation.isPending ? 'Applying...' : 'Confirm Override'}
                 </button>

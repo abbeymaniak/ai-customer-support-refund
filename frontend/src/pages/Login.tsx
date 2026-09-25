@@ -52,7 +52,7 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md space-y-8">
         {/* Brand Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-100 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-100 mb-4">
             <ShieldCheck className="w-9 h-9" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
@@ -64,13 +64,13 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Demo Credentials Quick-Fill Card */}
-        <div className="bg-gradient-to-br from-indigo-50/80 to-violet-50/60 border border-indigo-100 rounded-2xl p-4 shadow-xs">
+        <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/60 border border-emerald-100 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-emerald-600" />
               Evaluator Demo Credentials
             </span>
-            <span className="text-[11px] font-medium text-indigo-600 bg-white/80 px-2 py-0.5 rounded-full border border-indigo-100">
+            <span className="text-[11px] font-medium text-emerald-600 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-100">
               One-click Fill
             </span>
           </div>
@@ -78,17 +78,17 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => handlePreFill('admin@store.com', 'admin123')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-indigo-50/50 text-slate-800 text-xs font-medium rounded-xl border border-indigo-200/80 shadow-xs hover:border-indigo-300 transition duration-150 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-50/50 text-slate-800 text-xs font-medium rounded-xl border border-emerald-200/80 shadow-xs hover:border-emerald-300 transition duration-150 cursor-pointer"
             >
-              <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>Login as Admin</span>
             </button>
             <button
               type="button"
               onClick={() => handlePreFill('lead@store.com', 'lead123')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-violet-50/50 text-slate-800 text-xs font-medium rounded-xl border border-violet-200/80 shadow-xs hover:border-violet-300 transition duration-150 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-teal-50/50 text-slate-800 text-xs font-medium rounded-xl border border-teal-200/80 shadow-xs hover:border-teal-300 transition duration-150 cursor-pointer"
             >
-              <UserCheck className="w-3.5 h-3.5 text-violet-600" />
+              <UserCheck className="w-3.5 h-3.5 text-teal-600" />
               <span>Login as Lead</span>
             </button>
           </div>
@@ -123,7 +123,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="admin@store.com"
                   autoComplete="email"
                   required
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition duration-150"
                 />
               </div>
             </div>
@@ -147,7 +147,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   required
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition duration-150"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-md shadow-indigo-100 transition duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-md shadow-emerald-100 transition duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span>Authenticating...</span>
