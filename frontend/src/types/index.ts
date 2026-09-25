@@ -232,3 +232,24 @@ export interface AuthStatusResponse {
   status: 'ok' | 'refreshed' | 'logged_out';
   message?: string;
 }
+
+export interface CustomerUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'customer' | string;
+  is_active: boolean;
+  total_spent: number;
+  orders_count: number;
+  refunds_count: number;
+  return_rate: number;
+  risk_score: number;
+  last_login_at?: string | null;
+  created_at: string;
+}
+
+export interface CustomerLoginCredentials {
+  email: string;
+  password: string;
+}
+
