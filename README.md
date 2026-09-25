@@ -114,6 +114,19 @@ docker compose up --build
 - **FastAPI Health Endpoint**: [http://localhost:8000/health](http://localhost:8000/health)
 - **PostgreSQL Database**: Host port `5433` (internal `5432`) (`refunds_user` / `refunds_pass`)
 
+### 4. Stop and Reset Options
+- **Stop containers and preserve data**:
+  ```bash
+  docker compose down
+  ```
+  Halts and removes the running containers while keeping all submitted refund claims, admin settings, and database records safely stored in the `postgres_data` volume.
+
+- **Full factory reset (wipe database and reseed)**:
+  ```bash
+  docker compose down -v
+  ```
+  Stops containers and removes the persistent `postgres_data` volume. The next `docker compose up -d` boots a clean PostgreSQL instance and automatically runs `data/seed.sql` to restore fresh initial personas and test orders.
+
 ---
 
 ## Default Test Personas and Credentials
