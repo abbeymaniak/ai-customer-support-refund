@@ -1,7 +1,7 @@
 """Anomaly detection service for refund fraud velocity, value clusters, and duplicate claims."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 from sqlalchemy import func, select
@@ -37,7 +37,7 @@ class AnomalyService:
         Returns (risk_score, anomaly_flags).
         """
         anomaly_flags: list[str] = []
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
 
         # 1. Velocity Check (requests in rolling 24 hours)
         cutoff_24h = now - timedelta(hours=24)
@@ -108,8 +108,9 @@ class AnomalyService:
             except ValueError:
                 pass
 
-            from app.models.refund_item import RefundItem
             from sqlalchemy import or_
+
+            from app.models.refund_item import RefundItem
 
             conditions = [RefundRequest.item_id == str(item_id)]
             if item_uuid:

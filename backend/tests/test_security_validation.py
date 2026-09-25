@@ -199,7 +199,7 @@ async def test_ac2_ac4_xss_tag_stripping_and_sanitization(async_client, db_sessi
     }
 
     # Verify that xss script tag detection triggers security event
-    response = await async_client.post("/api/refunds/process", json=payload)
+    await async_client.post("/api/refunds/process", json=payload)
     # Even if processed or denied by policy (final sale), security log for script tag was generated
     stmt = (
         select(SecurityLog)
