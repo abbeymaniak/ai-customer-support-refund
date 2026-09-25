@@ -100,6 +100,10 @@ cd ai-customer-support-refund
 
 ### 2. Launch Containers
 ```bash
+# Run detached in the background
+docker compose up -d
+
+# Or run in the foreground with live logs and forced image rebuild
 docker compose up --build
 ```
 
