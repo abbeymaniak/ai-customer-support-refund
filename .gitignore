@@ -47,3 +47,7 @@ skills-lock.json
 
 # Explicitly track essential SQL seed data
 !data/seed.sql
+
+# Review and evaluation generated deliverables
+review.html
+review.docx
