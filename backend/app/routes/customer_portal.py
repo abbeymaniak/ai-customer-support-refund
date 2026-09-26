@@ -8,6 +8,7 @@ from app.dependencies.customer_auth import get_current_customer
 from app.models.customer import Customer
 from app.schemas.customer_portal import (
     CustomerPortalOrderResponse,
+    CustomerPortalRefundHistoryItemResponse,
     CustomerRefundClaimPayload,
 )
 from app.schemas.refund import RefundRequestResponse
@@ -29,6 +30,21 @@ async def get_authenticated_customer_orders(
 ) -> list[CustomerPortalOrderResponse]:
     """Return orders belonging strictly to the authenticated customer."""
     return await CustomerPortalService.get_customer_orders_with_claims(db, current_customer.id)
+
+
+@router.get(
+    "/refunds",
+    response_model=list[CustomerPortalRefundHistoryItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get authenticated customer refund claims history",
+    description="Retrieve all refund claims filed by the authenticated customer session.",
+)
+async def get_authenticated_customer_refunds(
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_db),
+) -> list[CustomerPortalRefundHistoryItemResponse]:
+    """Return refund claims belonging strictly to the authenticated customer."""
+    return await CustomerPortalService.get_customer_refund_history(db, current_customer.id)
 
 
 @router.post(
