@@ -187,3 +187,77 @@ async def test_refresh_token_check_constraint(db_session):
     with pytest.raises(Exception):
         await db_session.commit()
     await db_session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_customer_me_bearer_authorization_header(async_client):
+    """Test AC-4: /api/customer/auth/me accepts Authorization Bearer header when cookies are absent."""
+    login_res = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": "sarah.jenkins@example.com", "password": "customer123"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.cookies["customer_access_token"]
+
+    # Call endpoint without cookies, using Authorization Bearer header
+    header_res = await async_client.get(
+        "/api/customer/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert header_res.status_code == 200
+    assert header_res.json()["email"] == "sarah.jenkins@example.com"
+    assert header_res.json()["role"] == "customer"
+
+
+@pytest.mark.asyncio
+async def test_customer_login_updates_last_login_timestamp(async_client, db_session):
+    """Test AC-1, AC-3: Customer login updates last_login_at timestamp in database."""
+    sarah_stmt = select(Customer).where(Customer.email == "sarah.jenkins@example.com")
+    sarah_before = (await db_session.execute(sarah_stmt)).scalar_one()
+    initial_last_login = sarah_before.last_login_at
+
+    login_res = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": "sarah.jenkins@example.com", "password": "customer123"},
+    )
+    assert login_res.status_code == 200
+
+    # Refresh customer record
+    await db_session.refresh(sarah_before)
+    assert sarah_before.last_login_at is not None
+    if initial_last_login:
+        assert sarah_before.last_login_at >= initial_last_login
+
+
+@pytest.mark.asyncio
+async def test_customer_login_malformed_payload_validation(async_client):
+    """Test AC-3: Login endpoint rejects missing and empty fields with 422 Unprocessable Entity."""
+    # Missing password
+    res1 = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": "sarah.jenkins@example.com"},
+    )
+    assert res1.status_code == 422
+
+    # Missing email
+    res2 = await async_client.post(
+        "/api/customer/auth/login",
+        json={"password": "customer123"},
+    )
+    assert res2.status_code == 422
+
+    # Empty email (< min_length 3)
+    res3 = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": "", "password": "customer123"},
+    )
+    assert res3.status_code == 422
+
+    # Empty password (< min_length 1)
+    res4 = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": "sarah.jenkins@example.com", "password": ""},
+    )
+    assert res4.status_code == 422
+
+

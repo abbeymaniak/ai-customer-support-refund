@@ -5,42 +5,39 @@ import {
   XCircle,
   AlertTriangle,
   ArrowRight,
+  ArrowLeft,
   Package,
   Loader2,
-  Search,
-  HelpCircle,
-  RotateCcw,
   ShieldAlert,
   ShieldCheck,
   FileCheck,
   AlertCircle,
   Check,
-  UserCheck,
+  RotateCcw,
   History,
   Clock,
+  User,
+  ShoppingBag,
+  Info,
 } from 'lucide-react';
+import { customerPortalApi } from '../api/customerPortal';
 import { refundApi } from '../api/refunds';
-import type { RefundRequest as RefundRequestType } from '../types';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
+import type { CustomerRefundClaimPayload, RefundRequest as RefundRequestType } from '../types';
 import { Alert, Badge } from '../components/ui';
 
-const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 const ORDER_REGEX = /^ORD-[0-9A-Za-z-]{3,32}$/;
 const EXPLANATION_MIN = 10;
 const EXPLANATION_MAX = 1000;
 
-const SAMPLE_PERSONAS = [
-  { label: 'Sarah Jenkins (Low Risk, $3.2k Spent)', email: 'sarah.jenkins@example.com' },
-  { label: 'David Miller (Occasional, $450 Spent)', email: 'david.miller@example.com' },
-  { label: 'Marcus Vance (High Risk 60% Return)', email: 'marcus.vance@example.com' },
-  { label: 'Kevin Chen (40d Old Order, Expired)', email: 'kevin.chen@example.com' },
-  { label: 'James Wilson (High Value $650 Item)', email: 'james.wilson@example.com' },
-  { label: 'Amanda Price (Clearance / Final Sale)', email: 'amanda.price@example.com' },
-];
-
 export const RefundRequestPage: React.FC = () => {
-  const [emailInput, setEmailInput] = useState('');
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [activeEmail, setActiveEmail] = useState('');
+  const { customer } = useCustomerAuth();
+  const queryClient = useQueryClient();
+
+  // Wizard step state: 1 = Order & Item, 2 = Reason & Notes, 3 = Review & Submit
+  const [wizardStep, setWizardStep] = useState<number>(1);
+
+  // Form input state
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [itemCondition, setItemCondition] = useState<string>('unopened');
@@ -49,72 +46,50 @@ export const RefundRequestPage: React.FC = () => {
   const [explanation, setExplanation] = useState<string>('');
   const [decisionResult, setDecisionResult] = useState<RefundRequestType | null>(null);
 
-  const isEmailValid = EMAIL_REGEX.test(emailInput.trim());
-  const explanationLength = explanation.trim().length;
-  const isExplanationValid =
-    explanationLength >= EXPLANATION_MIN && explanationLength <= EXPLANATION_MAX;
-
-  // Fetch customer by active email
-  const customerQuery = useQuery({
-    queryKey: ['customer', activeEmail],
-    queryFn: () => refundApi.getCustomerByEmail(activeEmail),
-    enabled: !!activeEmail,
-    retry: 1,
-  });
-
-  // Fetch orders for customer
+  // Scoped orders query for authenticated customer
   const ordersQuery = useQuery({
-    queryKey: ['orders', customerQuery.data?.id],
-    queryFn: () => refundApi.getCustomerOrders(customerQuery.data!.id),
-    enabled: !!customerQuery.data?.id,
+    queryKey: ['customer-orders'],
+    queryFn: () => customerPortalApi.getMyOrders(),
+    enabled: !!customer,
   });
 
-  // Fetch refund history for customer
+  // Refund history query for authenticated customer
   const refundHistoryQuery = useQuery({
-    queryKey: ['customer-refunds', customerQuery.data?.id],
-    queryFn: () => refundApi.getCustomerRefunds(customerQuery.data!.id),
-    enabled: !!customerQuery.data?.id,
+    queryKey: ['customer-refunds', customer?.id],
+    queryFn: () => refundApi.getCustomerRefunds(customer!.id),
+    enabled: !!customer?.id,
   });
 
+  // Scoped refund submission mutation
+  const refundMutation = useMutation({
+    mutationFn: (payload: CustomerRefundClaimPayload) => customerPortalApi.submitRefund(payload),
+    onSuccess: (data) => {
+      setDecisionResult(data);
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      if (customer?.id) {
+        queryClient.invalidateQueries({ queryKey: ['customer-refunds', customer.id] });
+      }
+    },
+  });
 
   const selectedOrder = ordersQuery.data?.find((o) => o.id === selectedOrderId);
   const selectedItem = selectedOrder?.items.find((i) => i.id === selectedItemId);
 
-  // Submit refund mutation
-  const queryClient = useQueryClient();
-  const refundMutation = useMutation({
-    mutationFn: refundApi.submitRefundRequest,
-    onSuccess: (data) => {
-      setDecisionResult(data);
-      queryClient.invalidateQueries({ queryKey: ['customer-refunds'] });
-    },
-  });
+  const explanationLength = explanation.trim().length;
+  const isExplanationValid =
+    explanationLength >= EXPLANATION_MIN && explanationLength <= EXPLANATION_MAX;
 
-  const handleLookup = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isEmailValid) {
-      setActiveEmail(emailInput.trim());
-      setSelectedOrderId('');
-      setSelectedItemId('');
-      setDecisionResult(null);
-      refundMutation.reset();
-    }
-  };
-
-  const handleSelectPersona = (email: string) => {
-    setEmailInput(email);
-    setEmailTouched(false);
-    setActiveEmail(email);
-    setSelectedOrderId('');
-    setSelectedItemId('');
-    setDecisionResult(null);
-    refundMutation.reset();
-  };
+  const canProceedStep1 = Boolean(
+    selectedOrder && selectedItem && !selectedItem.has_active_claim
+  );
+  const canProceedStep2 = isExplanationValid;
 
   const handleResetForm = () => {
-    setDecisionResult(null);
+    setWizardStep(1);
+    setSelectedOrderId('');
     setSelectedItemId('');
     setExplanation('');
+    setDecisionResult(null);
     refundMutation.reset();
   };
 
@@ -123,10 +98,8 @@ export const RefundRequestPage: React.FC = () => {
     if (!selectedOrder || !selectedItem || !isExplanationValid) return;
 
     refundMutation.mutate({
-      customer_email: activeEmail,
-      order_number: selectedOrder.order_number,
+      order_id: selectedOrder.id,
       item_id: selectedItem.id,
-      amount: selectedItem.price * quantity,
       reason_category: reasonCategory,
       customer_explanation: explanation.trim(),
       quantity,
@@ -151,391 +124,550 @@ export const RefundRequestPage: React.FC = () => {
           Customer Support Refund Portal
         </h1>
         <p className="text-slate-600 text-sm sm:text-base">
-          Submit and evaluate refund claims in seconds with our transparent, policy guided
+          Submit and evaluate refund claims in seconds with our transparent policy guided
           artificial intelligence assistant.
         </p>
       </div>
 
-      {/* Demo Persona Quick-Picker */}
-      <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200">
-        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Quick Load Test Persona (Evaluation Scenarios)</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {SAMPLE_PERSONAS.map((p) => (
-            <button
-              key={p.email}
-              type="button"
-              onClick={() => handleSelectPersona(p.email)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                activeEmail === p.email
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Form and Selection */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Customer Lookup Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-              <Search className="w-5 h-5 text-emerald-600" />
-              <span>Step 1: Customer Account</span>
-            </h2>
-
-            <form onSubmit={handleLookup} className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => {
-                    setEmailInput(e.target.value);
-                    setEmailTouched(true);
-                  }}
-                  onBlur={() => setEmailTouched(true)}
-                  placeholder="Enter customer email address..."
-                  required
-                  className={`flex-1 px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition ${
-                    emailTouched && !isEmailValid
-                      ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
-                      : emailTouched && isEmailValid
-                        ? 'border-emerald-300 focus:ring-emerald-500 bg-emerald-50/20'
-                        : 'border-slate-300 focus:ring-emerald-500'
-                  }`}
-                />
-                <button
-                  type="submit"
-                  disabled={customerQuery.isLoading || !isEmailValid}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50 flex items-center space-x-1.5"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Lookup</span>
-                </button>
+      {/* Authenticated Customer Profile Summary Card */}
+      {customer && (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
+                {customer.name.slice(0, 1).toUpperCase()}
               </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-bold text-slate-900">{customer.name}</h2>
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                    <span>Verified Session</span>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">{customer.email}</p>
+              </div>
+            </div>
 
-              {emailTouched && !isEmailValid && (
-                <p className="text-xs text-rose-600 flex items-center space-x-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>Please enter a valid email address (e.g. name@example.com).</span>
-                </p>
-              )}
-              {emailTouched && isEmailValid && (
-                <p className="text-xs text-emerald-600 flex items-center space-x-1">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Valid email address format.</span>
-                </p>
-              )}
-            </form>
+            <div className="flex items-center space-x-2 text-xs text-slate-500">
+              <User className="w-4 h-4 text-emerald-600" />
+              <span>Customer ID: {customer.id.slice(0, 8)}</span>
+            </div>
+          </div>
 
-            {customerQuery.isError && (
-              <Alert variant="error" title="Customer Lookup Error">
-                {customerQuery.error instanceof Error
-                  ? customerQuery.error.message
-                  : 'Customer account not found.'}
+          {/* Profile Metrics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <span className="text-xs text-slate-500 block mb-1">Total Purchases</span>
+              <strong className="text-slate-900 text-base font-bold">
+                ${customer.total_spent.toFixed(2)}
+              </strong>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <span className="text-xs text-slate-500 block mb-1">Verified Orders</span>
+              <strong className="text-slate-900 text-base font-bold">
+                {customer.orders_count}
+              </strong>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <span className="text-xs text-slate-500 block mb-1">Return Rate</span>
+              <strong
+                className={`text-base font-bold ${
+                  customer.return_rate > 0.3 ? 'text-rose-600' : 'text-emerald-600'
+                }`}
+              >
+                {(customer.return_rate * 100).toFixed(0)}%
+              </strong>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <span className="text-xs text-slate-500 block mb-1">Risk Profile</span>
+              <strong
+                className={`text-base font-bold ${
+                  customer.risk_score > 0.4 ? 'text-rose-600' : 'text-emerald-700'
+                }`}
+              >
+                {(customer.risk_score * 100).toFixed(0)} / 100
+              </strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Wizard Form and Decision Result */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: 3 Step Claim Wizard */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Wizard Stepper Bar */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <button
+                type="button"
+                onClick={() => setWizardStep(1)}
+                className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5 ${
+                  wizardStep === 1
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold">
+                  1
+                </span>
+                <span className="truncate">Select Order & Item</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => canProceedStep1 && setWizardStep(2)}
+                disabled={!canProceedStep1}
+                className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5 ${
+                  wizardStep === 2
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : canProceedStep1
+                      ? 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      : 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold">
+                  2
+                </span>
+                <span className="truncate">Reason & Notes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => canProceedStep1 && canProceedStep2 && setWizardStep(3)}
+                disabled={!canProceedStep1 || !canProceedStep2}
+                className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5 ${
+                  wizardStep === 3
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : canProceedStep1 && canProceedStep2
+                      ? 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      : 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold">
+                  3
+                </span>
+                <span className="truncate">Review & Submit</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Wizard Body Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+            {ordersQuery.isLoading && (
+              <div className="py-12 text-center space-y-3">
+                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto" />
+                <p className="text-sm text-slate-500">Retrieving your verified customer orders...</p>
+              </div>
+            )}
+
+            {ordersQuery.isError && (
+              <Alert variant="error" title="Order Loading Error">
+                Could not load your orders. Please refresh the page or sign in again.
               </Alert>
             )}
 
-            {customerQuery.data && (
-              <div className="mt-4 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-wrap gap-4 text-xs">
-                <div>
-                  <span className="text-slate-500 block">Name</span>
-                  <strong className="text-slate-900 text-sm">{customerQuery.data.name}</strong>
+            {!ordersQuery.isLoading && ordersQuery.data && ordersQuery.data.length === 0 && (
+              <div className="py-12 text-center space-y-3">
+                <ShoppingBag className="w-12 h-12 text-slate-300 stroke-1 mx-auto" />
+                <h3 className="text-base font-bold text-slate-800">No Orders Found</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  You do not have any past purchase orders associated with this account.
+                </p>
+              </div>
+            )}
+
+            {/* Step 1: Select Order and Item */}
+            {!ordersQuery.isLoading && ordersQuery.data && ordersQuery.data.length > 0 && wizardStep === 1 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                    <Package className="w-5 h-5 text-emerald-600" />
+                    <span>Step 1: Select Order & Item</span>
+                  </h2>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {ordersQuery.data.length} available order{ordersQuery.data.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-slate-500 block">Total Spent</span>
-                  <strong className="text-slate-900 text-sm">
-                    ${customerQuery.data.total_spent.toFixed(2)}
-                  </strong>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Orders</span>
-                  <strong className="text-slate-900 text-sm">
-                    {customerQuery.data.orders_count}
-                  </strong>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Return Rate</span>
-                  <strong
-                    className={`text-sm ${customerQuery.data.return_rate > 0.3 ? 'text-rose-600' : 'text-emerald-600'}`}
+
+                {/* Choose Order Dropdown */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase">
+                      Select Past Order
+                    </label>
+                    {selectedOrder && ORDER_REGEX.test(selectedOrder.order_number) && (
+                      <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                        <span>Verified Order ({selectedOrder.order_number})</span>
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={selectedOrderId}
+                    onChange={(e) => {
+                      setSelectedOrderId(e.target.value);
+                      setSelectedItemId('');
+                      setDecisionResult(null);
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    {(customerQuery.data.return_rate * 100).toFixed(0)}%
-                  </strong>
+                    <option value="">Choose an Order</option>
+                    {ordersQuery.data.map((order) => (
+                      <option key={order.id} value={order.id}>
+                        {order.order_number} ({new Date(order.order_date).toLocaleDateString()}) : $
+                        {order.total_amount.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <span className="text-slate-500 block">Risk Score</span>
-                  <strong
-                    className={`text-sm ${customerQuery.data.risk_score > 0.4 ? 'text-rose-600' : 'text-slate-700'}`}
+
+                {/* Items in Selected Order */}
+                {selectedOrder && (
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase">
+                      Select Item to Refund
+                    </label>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {selectedOrder.items.map((item) => {
+                        const isClaimed = Boolean(item.has_active_claim);
+                        const isSelected = selectedItemId === item.id;
+
+                        return (
+                          <label
+                            key={item.id}
+                            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                              isClaimed
+                                ? 'border-slate-200 bg-slate-50/70 opacity-60 cursor-not-allowed'
+                                : isSelected
+                                  ? 'border-emerald-600 bg-emerald-50/40 shadow-sm cursor-pointer'
+                                  : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <input
+                                type="radio"
+                                name="orderItem"
+                                value={item.id}
+                                disabled={isClaimed}
+                                checked={isSelected}
+                                onChange={() => {
+                                  if (!isClaimed) {
+                                    setSelectedItemId(item.id);
+                                    setDecisionResult(null);
+                                  }
+                                }}
+                                className="text-emerald-600 focus:ring-emerald-500 disabled:opacity-40"
+                              />
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {item.name || item.product_name}
+                                  </p>
+                                  {item.is_final_sale && (
+                                    <Badge status="denied" size="sm" showIcon={false}>
+                                      Final Sale
+                                    </Badge>
+                                  )}
+                                  {isClaimed && (
+                                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      <span>
+                                        Claim Filed ({item.claim_status || 'Active'})
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-slate-500 capitalize">
+                                  Category: {item.category}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="font-bold text-sm text-slate-900">
+                              ${item.price.toFixed(2)}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Item Condition & Quantity Selection */}
+                {selectedItem && !selectedItem.has_active_claim && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">
+                        Item Condition
+                      </label>
+                      <select
+                        value={itemCondition}
+                        onChange={(e) => setItemCondition(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="unopened">Unopened (Original packaging)</option>
+                        <option value="opened_used">Opened or Used</option>
+                        <option value="damaged">Damaged or Defective on arrival</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">
+                        Quantity to Return
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={selectedItem.quantity || 1}
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 1 Action Button */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={!canProceedStep1}
+                    onClick={() => setWizardStep(2)}
+                    className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-100 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                   >
-                    {(customerQuery.data.risk_score * 100).toFixed(0)}/100
-                  </strong>
+                    <span>Continue to Reason & Notes</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Refund Claim Form */}
-          {customerQuery.data && (
-            <form
-              onSubmit={handleSubmit}
-              className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6"
-            >
-              <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Package className="w-5 h-5 text-emerald-600" />
-                <span>Step 2: Select Order & Item</span>
-              </h2>
-
-              {/* Select Order */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase">
-                    Select Order
-                  </label>
-                  {selectedOrder && ORDER_REGEX.test(selectedOrder.order_number) && (
-                    <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      <span>Validated Format ({selectedOrder.order_number})</span>
-                    </span>
-                  )}
+            {/* Step 2: Reason & Explanation */}
+            {wizardStep === 2 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                    <FileCheck className="w-5 h-5 text-emerald-600" />
+                    <span>Step 2: Reason & Notes</span>
+                  </h2>
+                  <span className="text-xs text-slate-500">
+                    {selectedItem?.name} ({quantity} item{quantity > 1 ? 's' : ''})
+                  </span>
                 </div>
-                <select
-                  value={selectedOrderId}
-                  onChange={(e) => {
-                    setSelectedOrderId(e.target.value);
-                    setSelectedItemId('');
-                    setDecisionResult(null);
-                  }}
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">Choose an Order</option>
-                  {ordersQuery.data?.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.order_number} ({new Date(o.order_date).toLocaleDateString()}) - $
-                      {o.total_amount.toFixed(2)}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Select Item */}
-              {selectedOrder && (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700 uppercase">
-                    Select Item to Refund
+                    Reason for Refund
                   </label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {selectedOrder.items.map((item) => (
-                      <label
-                        key={item.id}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          selectedItemId === item.id
-                            ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
-                            : 'border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="radio"
-                            name="item"
-                            value={item.id}
-                            checked={selectedItemId === item.id}
-                            onChange={() => {
-                              setSelectedItemId(item.id);
-                              setDecisionResult(null);
-                            }}
-                            className="text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <p className="text-sm font-medium text-slate-900">{item.name}</p>
-                              {item.is_final_sale && (
-                                <Badge status="denied" size="sm" showIcon={false}>
-                                  Final Sale
-                                </Badge>
-                              )}
-                            </div>
-                            <span className="text-xs text-slate-500 capitalize">
-                              Category: {item.category}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="font-semibold text-sm text-slate-900">
-                          ${item.price.toFixed(2)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <select
+                    value={reasonCategory}
+                    onChange={(e) => setReasonCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="defective">Item defective or does not function as advertised</option>
+                    <option value="damaged_on_arrival">Item arrived damaged or broken</option>
+                    <option value="wrong_item_sent">Wrong item sent by merchant</option>
+                    <option value="unwanted">Changed mind or no longer needed</option>
+                    <option value="bought_by_mistake">Ordered by mistake</option>
+                    <option value="item_not_received">Item not received</option>
+                  </select>
                 </div>
-              )}
 
-              {/* Item Condition & Quantity */}
-              {selectedItem && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
                     <label className="block text-xs font-semibold text-slate-700 uppercase">
-                      Item Condition
+                      Explanation Notes (Evaluated by AI)
                     </label>
-                    <select
-                      value={itemCondition}
-                      onChange={(e) => setItemCondition(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="unopened">Unopened (Original packaging)</option>
-                      <option value="opened_used">Opened / Used</option>
-                      <option value="damaged">Damaged / Defective on arrival</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 uppercase">
-                      Quantity to Refund
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={selectedItem.quantity || 1}
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Reason & Explanation */}
-              {selectedItem && (
-                <>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 uppercase">
-                      Reason for Refund
-                    </label>
-                    <select
-                      value={reasonCategory}
-                      onChange={(e) => setReasonCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="defective">
-                        Item defective or does not function as advertised
-                      </option>
-                      <option value="damaged_on_arrival">Item arrived damaged or broken</option>
-                      <option value="wrong_item_sent">Wrong item sent by merchant</option>
-                      <option value="unwanted">Changed mind or no longer needed</option>
-                      <option value="bought_by_mistake">Ordered by mistake</option>
-                      <option value="item_not_received">Item not received</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">
-                        Explanation / Notes (Evaluated by AI)
-                      </label>
-                      <span
-                        className={`text-xs font-mono font-medium ${
-                          explanation.length > EXPLANATION_MAX
-                            ? 'text-rose-600 font-bold'
-                            : explanationLength >= EXPLANATION_MIN
-                              ? 'text-emerald-600'
-                              : explanation.length > 0
-                                ? 'text-amber-600'
-                                : 'text-slate-400'
-                        }`}
-                      >
-                        {explanation.length} / {EXPLANATION_MAX} chars (min {EXPLANATION_MIN})
-                      </span>
-                    </div>
-                    <textarea
-                      rows={3}
-                      value={explanation}
-                      onChange={(e) => setExplanation(e.target.value)}
-                      placeholder="Please explain the issue in detail (at least 10 characters)..."
-                      className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition ${
+                    <span
+                      className={`text-xs font-mono font-medium ${
                         explanation.length > EXPLANATION_MAX
-                          ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
+                          ? 'text-rose-600 font-bold'
                           : explanationLength >= EXPLANATION_MIN
-                            ? 'border-emerald-300 focus:ring-emerald-500'
+                            ? 'text-emerald-600'
                             : explanation.length > 0
-                              ? 'border-amber-300 focus:ring-amber-500'
-                              : 'border-slate-300 focus:ring-emerald-500'
+                              ? 'text-amber-600'
+                              : 'text-slate-400'
                       }`}
-                    />
-                    {explanation.length > 0 && explanationLength < EXPLANATION_MIN && (
-                      <p className="text-xs text-amber-600 flex items-center space-x-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        <span>
-                          Explanation must be at least {EXPLANATION_MIN} characters ({EXPLANATION_MIN - explanationLength} more needed).
-                        </span>
-                      </p>
-                    )}
-                    {explanation.length > EXPLANATION_MAX && (
-                      <p className="text-xs text-rose-600 flex items-center space-x-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        <span>
-                          Explanation cannot exceed {EXPLANATION_MAX} characters ({explanation.length - EXPLANATION_MAX} characters over limit).
-                        </span>
-                      </p>
-                    )}
-                    {isExplanationValid && (
-                      <p className="text-xs text-emerald-600 flex items-center space-x-1">
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Valid explanation length for policy evaluation.</span>
-                      </p>
-                    )}
+                    >
+                      {explanation.length} / {EXPLANATION_MAX} characters (min {EXPLANATION_MIN})
+                    </span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={explanation}
+                    onChange={(e) => setExplanation(e.target.value)}
+                    placeholder="Please explain the reason for your refund in detail (at least 10 characters)..."
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition ${
+                      explanation.length > EXPLANATION_MAX
+                        ? 'border-rose-300 focus:ring-rose-500 bg-rose-50/20'
+                        : explanationLength >= EXPLANATION_MIN
+                          ? 'border-emerald-300 focus:ring-emerald-500'
+                          : explanation.length > 0
+                            ? 'border-amber-300 focus:ring-amber-500'
+                            : 'border-slate-300 focus:ring-emerald-500'
+                    }`}
+                  />
+                  {explanation.length > 0 && explanationLength < EXPLANATION_MIN && (
+                    <p className="text-xs text-amber-600 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>
+                        Explanation must be at least {EXPLANATION_MIN} characters ({EXPLANATION_MIN - explanationLength} more needed).
+                      </span>
+                    </p>
+                  )}
+                  {explanation.length > EXPLANATION_MAX && (
+                    <p className="text-xs text-rose-600 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>
+                        Explanation cannot exceed {EXPLANATION_MAX} characters ({explanation.length - EXPLANATION_MAX} characters over limit).
+                      </span>
+                    </p>
+                  )}
+                  {isExplanationValid && (
+                    <p className="text-xs text-emerald-600 flex items-center space-x-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Valid explanation length for policy evaluation.</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Security Perimeter Notice */}
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                  <div className="flex items-center space-x-1.5 font-semibold text-slate-700">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Security & Prompt Injection Protection</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Customer inputs are sanitized and analyzed by security classifiers. Claims are evaluated strictly against verified store return policies.
+                  </p>
+                </div>
+
+                {/* Step 2 Actions */}
+                <div className="flex items-center space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(1)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition flex items-center justify-center space-x-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Item Selection</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canProceedStep2}
+                    onClick={() => setWizardStep(3)}
+                    className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-100 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                  >
+                    <span>Continue to Review</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Review & Submit */}
+            {wizardStep === 3 && selectedOrder && selectedItem && (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span>Step 3: Review & Submit Claim</span>
+                  </h2>
+                  <span className="text-xs font-mono font-medium text-slate-500">
+                    {selectedOrder.order_number}
+                  </span>
+                </div>
+
+                {/* Summary Card */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3 text-xs">
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-slate-500 font-medium">Selected Order</span>
+                    <span className="font-semibold text-slate-800">
+                      {selectedOrder.order_number} ({new Date(selectedOrder.order_date).toLocaleDateString()})
+                    </span>
                   </div>
 
-                  {/* Security Perimeter Notice */}
-                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
-                    <div className="flex items-center space-x-1.5 font-semibold text-slate-700">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Security & Prompt Injection Protection</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      Inputs are sanitized against script tags and checked by security classifiers. Claims are evaluated strictly against store return policies.
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-slate-500 font-medium">Returned Item</span>
+                    <span className="font-semibold text-slate-800">
+                      {selectedItem.name || selectedItem.product_name}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-slate-500 font-medium">Condition & Quantity</span>
+                    <span className="font-semibold text-slate-800 capitalize">
+                      {itemCondition.replace('_', ' ')} : {quantity} unit{quantity > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-slate-500 font-medium">Claim Reason</span>
+                    <span className="font-semibold text-slate-800 capitalize">
+                      {reasonCategory.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+
+                  <div className="border-b border-slate-200 pb-2">
+                    <span className="text-slate-500 font-medium block mb-1">Your Explanation</span>
+                    <p className="text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-200">
+                      "{explanation.trim()}"
                     </p>
                   </div>
 
-                  {refundMutation.isError && (
-                    <Alert variant="error" title="Submission Error">
-                      {refundMutation.error instanceof Error
-                        ? refundMutation.error.message
-                        : 'Could not process refund request.'}
-                    </Alert>
-                  )}
+                  <div className="flex justify-between items-center pt-1 text-sm">
+                    <span className="text-slate-700 font-bold">Estimated Refund Amount</span>
+                    <span className="font-black text-emerald-700 text-base">
+                      ${(selectedItem.price * quantity).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {refundMutation.isError && (
+                  <Alert variant="error" title="Submission Error">
+                    {refundMutation.error instanceof Error
+                      ? refundMutation.error.message
+                      : 'Could not submit your refund request.'}
+                  </Alert>
+                )}
+
+                {/* Step 3 Actions */}
+                <div className="flex items-center space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    disabled={refundMutation.isPending}
+                    className="flex-1 py-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition flex items-center justify-center space-x-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Edit Reason & Notes</span>
+                  </button>
 
                   <button
                     type="submit"
                     disabled={refundMutation.isPending || !isExplanationValid}
-                    className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-100 transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-100 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                   >
                     {refundMutation.isPending ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Policy & AI Engine Evaluating...</span>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Evaluating Claim...</span>
                       </>
                     ) : (
                       <>
-                        <span>
-                          Submit Refund Claim (${(selectedItem.price * quantity).toFixed(2)})
-                        </span>
-                        <ArrowRight className="w-5 h-5" />
+                        <span>Submit Claim (${(selectedItem.price * quantity).toFixed(2)})</span>
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
-                </>
-              )}
-            </form>
-          )}
+                </div>
+              </form>
+            )}
+          </div>
         </div>
 
-        {/* Right Column: AI Decision Outcome */}
+        {/* Right Column: AI Decision Engine Verdict */}
         <div className="lg:col-span-5">
           <div className="sticky top-24 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
             <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
@@ -545,7 +677,7 @@ export const RefundRequestPage: React.FC = () => {
                   <span>AI Decision Engine Verdict</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  Real time policy validation and multi factor risk determination.
+                  Real time policy validation and multifactor risk determination.
                 </p>
               </div>
               {decisionResult && (
@@ -631,10 +763,10 @@ export const RefundRequestPage: React.FC = () => {
                       Official Policy References
                     </h4>
                     <ul className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      {policyChecks.citations.map((c, idx) => (
+                      {policyChecks.citations.map((citation, idx) => (
                         <li key={idx} className="flex items-start space-x-2">
                           <span className="text-emerald-600 font-bold">•</span>
-                          <span>{c}</span>
+                          <span>{citation}</span>
                         </li>
                       ))}
                     </ul>
@@ -646,7 +778,7 @@ export const RefundRequestPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center space-x-1">
                         <ShieldAlert className="w-4 h-4 text-rose-600" />
-                        <span>Security / Red Flags Flagged</span>
+                        <span>Security and Risk Indicators Flagged</span>
                       </h4>
                       <div className="flex flex-wrap gap-1.5">
                         {policyChecks.triggered_red_flags.map((flag) => (
@@ -657,6 +789,15 @@ export const RefundRequestPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition flex items-center justify-center space-x-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Submit Another Claim</span>
+                </button>
               </div>
             ) : refundMutation.isPending ? (
               <div className="py-14 text-center space-y-5">
@@ -681,14 +822,14 @@ export const RefundRequestPage: React.FC = () => {
                 </div>
                 <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-xs text-emerald-700 font-medium">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                  <span>AI reasoning in progress (few seconds for local models)</span>
+                  <span>AI reasoning in progress</span>
                 </div>
               </div>
             ) : (
               <div className="py-16 text-center space-y-3 text-slate-400">
-                <HelpCircle className="w-12 h-12 mx-auto stroke-1 text-slate-300" />
+                <Info className="w-12 h-12 mx-auto stroke-1 text-slate-300" />
                 <p className="text-sm">
-                  Select an order and item on the left to trigger the AI decision engine.
+                  Complete the 3 step wizard on the left to trigger the AI decision engine.
                 </p>
               </div>
             )}
@@ -696,13 +837,13 @@ export const RefundRequestPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Refund History Section */}
-      {customerQuery.data && (
+      {/* Customer Refund History Section */}
+      {customer && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <History className="w-5 h-5 text-emerald-600" />
-              <h2 className="text-lg font-bold text-slate-900">Refund History</h2>
+              <h2 className="text-lg font-bold text-slate-900">Your Refund History</h2>
             </div>
             <span className="text-xs font-medium text-slate-500">
               {refundHistoryQuery.data?.length ?? 0} request{(refundHistoryQuery.data?.length ?? 0) !== 1 ? 's' : ''}
@@ -716,7 +857,7 @@ export const RefundRequestPage: React.FC = () => {
           ) : !refundHistoryQuery.data || refundHistoryQuery.data.length === 0 ? (
             <div className="p-10 text-center space-y-2 text-slate-400">
               <CheckCircle2 className="w-10 h-10 mx-auto stroke-1 text-slate-300" />
-              <p className="text-sm">No refund requests found for this customer.</p>
+              <p className="text-sm">No refund requests found for your account.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -774,7 +915,7 @@ export const RefundRequestPage: React.FC = () => {
                             Overridden
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-xs">—</span>
+                          <span className="text-slate-400 text-xs">None</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-500">

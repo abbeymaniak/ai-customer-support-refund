@@ -15,11 +15,15 @@ graph TD
     subgraph Frontend Container [refund_frontend : Port 3000]
         Nginx[Nginx Reverse Proxy & Static Host]
         ReactSPA[React 18 SPA / Vite / Tailwind CSS v4]
+        CustPortal[Scoped Customer Portal / 3-Step Wizard]
+        AdminDash[Admin Dashboard & Override Controls]
     end
     
     subgraph Backend Container [refund_backend : Port 8000]
         FastAPI[FastAPI Application Server]
-        AuthService[JWT Authentication & Cookie Security]
+        AdminAuth[Admin JWT Authentication & Cookies]
+        CustAuth[Customer JWT Authentication & Cookies]
+        CustPortalService[Scoped Customer Orders & Claims]
         PolicyEngine[Two Phase Policy & Guardrail Engine]
         AnomalyService[Sliding Window Anomaly Detector]
         SecurityService[Prompt Injection Sanitizer]
@@ -40,8 +44,12 @@ graph TD
 
     Client -->|HTTP Port 3000| Nginx
     Nginx -->|Static Assets| ReactSPA
+    ReactSPA --> CustPortal
+    ReactSPA --> AdminDash
     Nginx -->|/api/* & /health Proxy| FastAPI
-    FastAPI --> AuthService
+    FastAPI --> AdminAuth
+    FastAPI --> CustAuth
+    FastAPI --> CustPortalService
     FastAPI --> PolicyEngine
     FastAPI --> AnomalyService
     FastAPI --> SecurityService
@@ -70,19 +78,26 @@ graph TD
 - **Phase 2 (AI Evaluation)**: Eligible claims are evaluated by the AI engine, analyzing customer return reasoning, product condition, and purchase context against store guidelines.
 - **Post Evaluation Safety Guardrails**: AI decisions pass through a deterministic validation interceptor. If an AI model hallucinates or attempts to approve a prohibited item due to prompt injection, the guardrail immediately overrides the decision to `denied` and logs a security incident.
 
-### 2. Multi Provider LLM Integration
+### 2. Customer Authentication and Scoped Refund Portal
+- **Isolated Authentication**: Dedicated customer authentication service issuing scoped JWT tokens stored in HTTP-only `customer_access_token` and `customer_refresh_token` cookies, completely decoupled from administrative credentials.
+- **Session Derived Identity**: Zero client side identity spoofing. Customers never enter manual emails or select sample personas; all claims derive customer identity strictly from the verified session context.
+- **Server Side Order Ownership**: Every claim submission validates that the target `order_id` belongs to `current_customer.id`, rejecting unauthorized access with HTTP 403 Forbidden.
+- **Duplicate Claim Prevention**: Prevents duplicate claims on already approved or pending line items with HTTP 400 Bad Request and frontend selection badges.
+- **3 Step Return Wizard**: Intuitive customer experience guiding users through Order & Item Selection, Reason & Notes, and Review & Confirmation with real time validation.
+
+### 3. Multi Provider LLM Integration
 - Supports **OpenAI** (`gpt-4o-mini`), **Local Ollama** (`llama3`), and **Google Gemini** (`gemini-1.5-flash`).
 - Administrators can switch active providers and test endpoint connectivity live in the Admin Settings UI without redeploying containers.
 - Failures, timeouts, or network disconnections gracefully degrade to human supervisor escalation with structured audit telemetry.
 
-### 3. Security Hardening and Fraud Prevention
+### 4. Security Hardening and Fraud Prevention
 - **Prompt Injection Defense**: Multi pattern regex sanitizer intercepts delimiter manipulation, role hijacking, instruction overrides, and script tags, neutralizing adversarial inputs before processing.
 - **Velocity Limit Anomalies**: Flags customers submitting 3 or more refund requests within a rolling 24 hour window.
 - **High Value Clusters**: Flags claims exceeding $200.00 individually or $500.00 cumulatively over 7 days.
 - **Conflicting Claim Detection**: Identifies duplicate claims filed against the same order line item within 30 days.
 
-### 4. Administrative Control and Operational Oversight
-- Role based authentication using HTTP only cookies with cryptographic JWT refresh token rotation.
+### 5. Administrative Control and Operational Oversight
+- Role based authentication using HTTP-only cookies with cryptographic JWT refresh token rotation.
 - Real time dashboard displaying refund metrics, risk scores, anomaly badges, and policy summaries.
 - Slide over inspection drawer providing customer purchase history, AI confidence ratings, policy rule checks, and supervisor decision override tools.
 
@@ -108,7 +123,10 @@ docker compose up --build
 ```
 
 ### 3. Access Live Application Surfaces
-- **Customer Refund Portal**: [http://localhost:3000](http://localhost:3000)
+- **Public Storefront & Landing**: [http://localhost:3000](http://localhost:3000)
+- **Customer Authentication**: [http://localhost:3000/login](http://localhost:3000/login)
+- **Scoped Customer Refund Portal**: [http://localhost:3000/portal](http://localhost:3000/portal)
+- **Administrative Login**: [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
 - **Administrative Dashboard**: [http://localhost:3000/admin](http://localhost:3000/admin)
 - **Interactive OpenAPI Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **FastAPI Health Endpoint**: [http://localhost:8000/health](http://localhost:8000/health)
@@ -131,6 +149,18 @@ docker compose up --build
 
 ## Default Test Personas and Credentials
 
+### Customer Evaluator Accounts
+Log in at [http://localhost:3000/login](http://localhost:3000/login) using any seeded customer persona (all seeded customers share the default password `customer123`). Quick login buttons are also provided on the customer login page for evaluator convenience:
+
+| Customer Persona | Email | Password | Orders | Risk Score | Expected Test Scenario |
+|---|---|---|---|---|---|
+| Sarah Jenkins (Loyal VIP) | `sarah.jenkins@example.com` | `customer123` | 18 | 0.05 | Immediate auto approval for standard returns |
+| Marcus Vance (Serial Returner) | `marcus.vance@example.com` | `customer123` | 5 | 0.85 | Velocity and return rate anomaly escalation |
+| Victoria Sterling (High Spender) | `victoria.sterling@example.com` | `customer123` | 32 | 0.10 | Low risk processing across premium purchases |
+| Amanda Price (Final Sale) | `amanda.price@example.com` | `customer123` | 2 | 0.70 | Deterministic policy denial on clearance item |
+| James Wilson (High Value) | `james.wilson@example.com` | `customer123` | 4 | 0.65 | Escalation for claim amount exceeding $500 threshold |
+| Kevin Chen (Expired Window) | `kevin.chen@example.com` | `customer123` | 3 | 0.75 | Deterministic policy denial for delivery > 90 days ago |
+
 ### Administrative Evaluator Accounts
 Log in at [http://localhost:3000/admin/login](http://localhost:3000/admin/login) using either account:
 
@@ -139,18 +169,6 @@ Log in at [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
 | Store Administrator | `admin@store.com` | `admin123` | admin |
 | System Administrator | `admin@refunds.internal` | `AdminPassword123!` | admin |
 | Support Lead | `lead@store.com` | `lead123` | agent |
-
-### Pre Seeded Customer Personas
-Test refund claim scenarios in the customer portal using these seeded customer emails:
-
-| Customer Persona | Email | Orders | Risk Score | Expected Outcome |
-|---|---|---|---|---|
-| Sarah Jenkins (Loyal VIP) | `sarah.jenkins@example.com` | 18 | 0.05 | Immediate auto approval for standard returns |
-| Marcus Vance (Serial Returner) | `marcus.vance@example.com` | 5 | 0.85 | Velocity and return rate anomaly escalation |
-| Victoria Sterling (High Spender) | `victoria.sterling@example.com` | 32 | 0.10 | Low risk processing across premium purchases |
-| Amanda Price (Final Sale) | `amanda.price@example.com` | 2 | 0.70 | Deterministic policy denial on clearance item |
-| James Wilson (High Value) | `james.wilson@example.com` | 4 | 0.65 | Escalation for claim amount exceeding $500 threshold |
-| Kevin Chen (Expired Window) | `kevin.chen@example.com` | 3 | 0.75 | Deterministic policy denial for delivery > 90 days ago |
 
 ---
 
@@ -188,9 +206,9 @@ Development frontend runs at [http://localhost:5173](http://localhost:5173).
 
 ## Automated Testing Suite
 
-The repository maintains full automated test coverage across backend business logic and frontend user interfaces (194 total tests).
+The repository maintains full automated test coverage across backend business logic and frontend user interfaces (235 total tests).
 
-### Backend Pytest Suite (112 tests)
+### Backend Pytest Suite (129 tests)
 Run tests inside the live backend container:
 ```bash
 docker compose exec backend pytest
@@ -202,7 +220,7 @@ source .venv/bin/activate
 pytest
 ```
 
-### Frontend Vitest Suite (82 tests)
+### Frontend Vitest Suite (106 tests across 16 test files)
 Run unit and component tests:
 ```bash
 cd frontend
@@ -252,3 +270,5 @@ The repository follows an incremental tracer bullet development approach with de
 - `feat/security-edge-case-hardening`: Anomaly scoring, velocity limits, deterministic guardrails.
 - `feat/database-seeding-docker-orchestration`: Healthcheck chaining, automated migrations, 16 seed personas.
 - `feat/documentation-explanation-files`: Technical documentation, interactive schema diagram, Word generator.
+- `feat/customer-authentication`: Customer model credentials, password hashing, JWT issuance, `/api/customer/auth/*` endpoints, and frontend customer login.
+- `feat/scoped-customer-refund-portal`: Scoped customer orders endpoint, claim submission with server-side order ownership verification, duplicate claim prevention, and authenticated 3-step wizard.

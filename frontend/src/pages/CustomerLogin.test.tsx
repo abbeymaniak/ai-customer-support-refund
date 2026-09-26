@@ -78,4 +78,48 @@ describe('CustomerLoginPage Component', () => {
     expect(markup).toContain('Support Staff Login');
     expect(markup).toContain('/admin/login');
   });
+
+  it('renders evaluation scenario badges for sample customer accounts (covers: AC-5)', () => {
+    vi.spyOn(CustomerAuthContextModule, 'useCustomerAuth').mockReturnValue({
+      customer: null,
+      isLoading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshProfile: vi.fn(),
+    });
+
+    const markup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/login']}>
+        <CustomerLoginPage />
+      </MemoryRouter>
+    );
+
+    expect(markup).toContain('18 Orders');
+    expect(markup).toContain('VIP');
+    expect(markup).toContain('4 Orders');
+    expect(markup).toContain('Standard');
+    expect(markup).toContain('Frequent Returns');
+  });
+
+  it('renders correctly when returnUrl query parameter is provided (covers: AC-6)', () => {
+    vi.spyOn(CustomerAuthContextModule, 'useCustomerAuth').mockReturnValue({
+      customer: null,
+      isLoading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshProfile: vi.fn(),
+    });
+
+    const markup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/login?returnUrl=%2Fportal']}>
+        <CustomerLoginPage />
+      </MemoryRouter>
+    );
+
+    expect(markup).toContain('Customer Portal Login');
+    expect(markup).toContain('Sign In');
+  });
 });
+
