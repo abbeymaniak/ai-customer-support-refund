@@ -46,6 +46,47 @@ class CustomerPortalOrderResponse(BaseModel):
     )
 
 
+class CustomerPortalRefundClaimItemResponse(BaseModel):
+    """Line item details attached to a customer refund claim."""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: uuid.UUID
+    order_item_id: uuid.UUID
+    product_name: str
+    quantity: int = 1
+    refund_amount: float
+    item_condition: str = "unopened"
+
+
+class CustomerPortalRefundHistoryItemResponse(BaseModel):
+    """Enriched customer refund claim history schema for portal inspection."""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: uuid.UUID
+    request_number: str
+    order_id: uuid.UUID
+    order_number: str
+    item_name: str | None = None
+    amount: float
+    currency: str = "USD"
+    status: str
+    decision: str
+    ai_decision: str | None = None
+    confidence_score: float | None = None
+    reason_category: str
+    customer_explanation: str
+    ai_reasoning: str | None = None
+    policy_checks: dict | list | None = None
+    human_override: bool = False
+    override_reason: str | None = None
+    override_by: str | None = None
+    items: list[CustomerPortalRefundClaimItemResponse] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
 class CustomerRefundClaimPayload(BaseModel):
     """Payload for submitting a refund claim from an authenticated customer portal session."""
 

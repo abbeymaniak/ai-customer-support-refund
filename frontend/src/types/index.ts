@@ -265,4 +265,46 @@ export interface CustomerRefundClaimPayload {
   item_condition?: string;
 }
 
+export interface CustomerRefundClaimItem {
+  id: string;
+  order_item_id: string;
+  product_name: string;
+  quantity: number;
+  refund_amount: number;
+  item_condition: string;
+}
+
+export interface CustomerRefundHistoryItem {
+  id: string;
+  request_number: string;
+  order_id: string;
+  order_number: string;
+  item_name?: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  decision: DecisionType;
+  ai_decision?: string | null;
+  confidence_score?: number | null;
+  reason_category: string;
+  customer_explanation: string;
+  ai_reasoning?: string | null;
+  policy_checks?:
+    | {
+        matched_rules?: string[];
+        triggered_red_flags?: string[];
+        reasons?: string[];
+        citations?: string[];
+      }
+    | Record<string, unknown>
+    | null;
+  human_override: boolean;
+  override_reason?: string | null;
+  override_by?: string | null;
+  items: CustomerRefundClaimItem[];
+  created_at: string;
+  updated_at?: string | null;
+}
+
+
 

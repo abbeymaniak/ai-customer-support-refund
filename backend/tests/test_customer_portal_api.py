@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.refund_item import RefundItem
+from app.models.refund_request import RefundRequest
 
 
 @pytest.mark.asyncio
@@ -371,4 +373,271 @@ async def test_submit_customer_refund_invalid_token_rejection(async_client):
         },
     )
     assert post_res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_customer_refunds_unauthenticated(async_client):
+    """Test AC-1: Unauthenticated request to GET /api/customer/refunds returns 401."""
+    res = await async_client.get("/api/customer/refunds")
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_customer_refunds_empty_when_no_claims(async_client, db_session):
+    """Test AC-1: Authenticated customer with no claims receives empty list with 200 OK."""
+    from app.services.customer_auth_service import CustomerAuthService
+
+    unique_email = f"noclaims.{uuid.uuid4().hex[:8]}@example.com"
+    customer = Customer(
+        id=uuid.uuid4(),
+        email=unique_email,
+        name="No Claims User",
+        password_hash=CustomerAuthService.hash_password("customer123"),
+        is_active=True,
+    )
+    db_session.add(customer)
+    await db_session.commit()
+
+    login_res = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": unique_email, "password": "customer123"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.cookies["customer_access_token"]
+
+    refunds_res = await async_client.get(
+        "/api/customer/refunds",
+        cookies={"customer_access_token": token},
+    )
+    assert refunds_res.status_code == 200
+    assert refunds_res.json() == []
+
+
+@pytest.mark.asyncio
+async def test_get_customer_refunds_scoped_isolation(async_client, db_session):
+    """Test AC-1, AC-2: Claims are strictly isolated to the authenticated customer."""
+    from app.services.customer_auth_service import CustomerAuthService
+
+    # Customer A
+    email_a = f"cust_a.{uuid.uuid4().hex[:8]}@example.com"
+    cust_a = Customer(
+        id=uuid.uuid4(),
+        email=email_a,
+        name="Customer A",
+        password_hash=CustomerAuthService.hash_password("customer123"),
+        is_active=True,
+    )
+    # Customer B
+    email_b = f"cust_b.{uuid.uuid4().hex[:8]}@example.com"
+    cust_b = Customer(
+        id=uuid.uuid4(),
+        email=email_b,
+        name="Customer B",
+        password_hash=CustomerAuthService.hash_password("customer123"),
+        is_active=True,
+    )
+    db_session.add_all([cust_a, cust_b])
+    await db_session.commit()
+
+    # Create order and refund claim for Customer A
+    order_a = Order(
+        id=uuid.uuid4(),
+        customer_id=cust_a.id,
+        order_number=f"ORD-A-{uuid.uuid4().hex[:6].upper()}",
+        order_date=datetime.utcnow() - timedelta(days=5),
+        total_amount=150.0,
+        currency="USD",
+        status="delivered",
+    )
+    db_session.add(order_a)
+    await db_session.commit()
+
+    refund_a = RefundRequest(
+        id=uuid.uuid4(),
+        request_number=f"REF-A-{uuid.uuid4().hex[:6].upper()}",
+        customer_id=cust_a.id,
+        order_id=order_a.id,
+        item_name="Wireless Keyboard",
+        amount=75.0,
+        currency="USD",
+        reason_category="defective",
+        customer_explanation="Keys are repeating and jamming.",
+        status="approved",
+        decision="Approved",
+        ai_decision="Approved",
+        confidence_score=0.92,
+        ai_reasoning="Defective hardware eligible for immediate refund within warranty.",
+        created_at=datetime.utcnow(),
+    )
+    db_session.add(refund_a)
+    await db_session.commit()
+
+    # Login as Customer B
+    login_b = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": email_b, "password": "customer123"},
+    )
+    token_b = login_b.cookies["customer_access_token"]
+
+    # Customer B calls GET /api/customer/refunds -> receives empty array
+    res_b = await async_client.get(
+        "/api/customer/refunds",
+        cookies={"customer_access_token": token_b},
+    )
+    assert res_b.status_code == 200
+    assert res_b.json() == []
+
+    # Login as Customer A
+    login_a = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": email_a, "password": "customer123"},
+    )
+    token_a = login_a.cookies["customer_access_token"]
+
+    # Customer A calls GET /api/customer/refunds -> receives their own claim
+    res_a = await async_client.get(
+        "/api/customer/refunds",
+        cookies={"customer_access_token": token_a},
+    )
+    assert res_a.status_code == 200
+    claims_a = res_a.json()
+    assert len(claims_a) == 1
+    assert claims_a[0]["request_number"] == refund_a.request_number
+    assert claims_a[0]["order_number"] == order_a.order_number
+    assert claims_a[0]["item_name"] == "Wireless Keyboard"
+    assert claims_a[0]["amount"] == 75.0
+    assert claims_a[0]["decision"] == "Approved"
+    assert claims_a[0]["ai_reasoning"] == "Defective hardware eligible for immediate refund within warranty."
+
+
+@pytest.mark.asyncio
+async def test_get_customer_refunds_descending_order_and_override_details(async_client, db_session):
+    """Test AC-2: Claims are returned in descending chronological order with supervisor override details."""
+    from app.services.customer_auth_service import CustomerAuthService
+
+    email = f"history.{uuid.uuid4().hex[:8]}@example.com"
+    customer = Customer(
+        id=uuid.uuid4(),
+        email=email,
+        name="History Customer",
+        password_hash=CustomerAuthService.hash_password("customer123"),
+        is_active=True,
+    )
+    db_session.add(customer)
+    await db_session.commit()
+
+    order = Order(
+        id=uuid.uuid4(),
+        customer_id=customer.id,
+        order_number=f"ORD-H-{uuid.uuid4().hex[:6].upper()}",
+        order_date=datetime.utcnow() - timedelta(days=10),
+        total_amount=300.0,
+        currency="USD",
+        status="delivered",
+    )
+    db_session.add(order)
+    await db_session.commit()
+
+    order_item = OrderItem(
+        id=uuid.uuid4(),
+        order_id=order.id,
+        product_id="PROD-HISTORY-TEST",
+        product_name="Headphones",
+        category="electronics",
+        price=120.0,
+        quantity=1,
+    )
+    db_session.add(order_item)
+    await db_session.commit()
+
+    older_claim = RefundRequest(
+        id=uuid.uuid4(),
+        request_number=f"REF-OLD-{uuid.uuid4().hex[:6].upper()}",
+        customer_id=customer.id,
+        order_id=order.id,
+        item_name="Gaming Mouse",
+        amount=60.0,
+        currency="USD",
+        reason_category="unwanted",
+        customer_explanation="Did not like ergonomic shape.",
+        status="denied",
+        decision="Denied",
+        ai_decision="Denied",
+        confidence_score=0.88,
+        ai_reasoning="Return window exceeded standard policy.",
+        created_at=datetime.utcnow() - timedelta(days=2),
+    )
+
+    newer_claim = RefundRequest(
+        id=uuid.uuid4(),
+        request_number=f"REF-NEW-{uuid.uuid4().hex[:6].upper()}",
+        customer_id=customer.id,
+        order_id=order.id,
+        item_name="Headphones",
+        amount=120.0,
+        currency="USD",
+        reason_category="damaged_on_arrival",
+        customer_explanation="Cracked headband out of box.",
+        status="approved",
+        decision="Approved",
+        ai_decision="Escalated",
+        confidence_score=0.65,
+        ai_reasoning="Borderline damage claim flagged for review.",
+        human_override=True,
+        override_reason="Customer sent photos showing clear transit damage.",
+        override_by="supervisor@example.com",
+        created_at=datetime.utcnow(),
+    )
+    db_session.add_all([older_claim, newer_claim])
+    await db_session.commit()
+
+    refund_item = RefundItem(
+        id=uuid.uuid4(),
+        refund_request_id=newer_claim.id,
+        order_item_id=order_item.id,
+        quantity=1,
+        refund_amount=120.0,
+        item_condition="damaged",
+    )
+    db_session.add(refund_item)
+    await db_session.commit()
+
+    login_res = await async_client.post(
+        "/api/customer/auth/login",
+        json={"email": email, "password": "customer123"},
+    )
+    token = login_res.cookies["customer_access_token"]
+
+    res = await async_client.get(
+        "/api/customer/refunds",
+        cookies={"customer_access_token": token},
+    )
+    assert res.status_code == 200
+    claims = res.json()
+    assert len(claims) == 2
+
+    # Verify descending order: newer_claim first
+    assert claims[0]["request_number"] == newer_claim.request_number
+    assert claims[0]["item_name"] == "Headphones"
+    assert claims[0]["human_override"] is True
+    assert claims[0]["override_reason"] == "Customer sent photos showing clear transit damage."
+    assert claims[0]["override_by"] == "supervisor@example.com"
+    assert claims[0]["ai_decision"] == "Escalated"
+    assert claims[0]["decision"] == "Approved"
+    assert claims[0]["items"] == [
+        {
+            "id": str(refund_item.id),
+            "order_item_id": str(order_item.id),
+            "product_name": "Headphones",
+            "quantity": 1,
+            "refund_amount": 120.0,
+            "item_condition": "damaged",
+        }
+    ]
+
+    # Second claim is older_claim
+    assert claims[1]["request_number"] == older_claim.request_number
+    assert claims[1]["item_name"] == "Gaming Mouse"
+    assert claims[1]["human_override"] is False
+
 

@@ -83,6 +83,7 @@ graph TD
 - **Session Derived Identity**: Zero client side identity spoofing. Customers never enter manual emails or select sample personas; all claims derive customer identity strictly from the verified session context.
 - **Server Side Order Ownership**: Every claim submission validates that the target `order_id` belongs to `current_customer.id`, rejecting unauthorized access with HTTP 403 Forbidden.
 - **Duplicate Claim Prevention**: Prevents duplicate claims on already approved or pending line items with HTTP 400 Bad Request and frontend selection badges.
+- **Role-aware Session Navigation**: The shared navbar shows only guest sign-in actions when no session is active, exposes Customer Portal and My Claims to verified customers, and shows Admin Dashboard plus AI Settings only when an admin session is active. The customer portal tab state is kept in the URL so back and forward history follows the selected tab, and the mobile nav includes accessible disclosure semantics with Escape-to-close behavior.
 - **3 Step Return Wizard**: Intuitive customer experience guiding users through Order & Item Selection, Reason & Notes, and Review & Confirmation with real time validation.
 
 ### 3. Multi Provider LLM Integration

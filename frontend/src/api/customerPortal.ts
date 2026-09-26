@@ -1,9 +1,14 @@
 import { apiClient } from './client';
-import type { CustomerRefundClaimPayload, Order, RefundRequest } from '../types';
+import type { CustomerRefundClaimPayload, CustomerRefundHistoryItem, Order, RefundRequest } from '../types';
 
 export const customerPortalApi = {
   getMyOrders: async (): Promise<Order[]> => {
     const response = await apiClient.get<Order[]>('/customer/orders');
+    return response.data;
+  },
+
+  getMyRefunds: async (): Promise<CustomerRefundHistoryItem[]> => {
+    const response = await apiClient.get<CustomerRefundHistoryItem[]>('/customer/refunds');
     return response.data;
   },
 

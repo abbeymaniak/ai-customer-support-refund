@@ -16,6 +16,8 @@ from app.models.refund_request import RefundRequest
 from app.schemas.customer_portal import (
     CustomerPortalOrderItemResponse,
     CustomerPortalOrderResponse,
+    CustomerPortalRefundClaimItemResponse,
+    CustomerPortalRefundHistoryItemResponse,
     CustomerRefundClaimPayload,
 )
 from app.schemas.refund import RefundRequestResponse, RefundSubmissionPayload
@@ -185,3 +187,69 @@ class CustomerPortalService:
         refund_record = await refund_service.process_refund(submission_payload, client_ip=client_ip)
 
         return RefundRequestResponse.model_validate(refund_record)
+
+    @staticmethod
+    async def get_customer_refund_history(
+        db: AsyncSession,
+        customer_id: uuid.UUID,
+    ) -> list[CustomerPortalRefundHistoryItemResponse]:
+        """Fetch all refund claims filed by the customer, ordered descending by submission time."""
+        stmt = (
+            select(RefundRequest)
+            .where(RefundRequest.customer_id == customer_id)
+            .order_by(RefundRequest.created_at.desc())
+            .options(
+                selectinload(RefundRequest.order),
+                selectinload(RefundRequest.refund_items).selectinload(RefundItem.order_item),
+            )
+        )
+        result = await db.execute(stmt)
+        records = result.scalars().all()
+
+        history: list[CustomerPortalRefundHistoryItemResponse] = []
+        for req in records:
+            order_number = req.order.order_number if req.order else "Unknown"
+            claim_items: list[CustomerPortalRefundClaimItemResponse] = []
+            for r_item in req.refund_items:
+                prod_name = (
+                    r_item.order_item.product_name
+                    if r_item.order_item
+                    else (req.item_name or "Unknown Item")
+                )
+                claim_items.append(
+                    CustomerPortalRefundClaimItemResponse(
+                        id=r_item.id,
+                        order_item_id=r_item.order_item_id,
+                        product_name=prod_name,
+                        quantity=r_item.quantity,
+                        refund_amount=r_item.refund_amount,
+                        item_condition=r_item.item_condition,
+                    )
+                )
+
+            history.append(
+                CustomerPortalRefundHistoryItemResponse(
+                    id=req.id,
+                    request_number=req.request_number,
+                    order_id=req.order_id,
+                    order_number=order_number,
+                    item_name=req.item_name,
+                    amount=req.amount,
+                    currency=req.currency,
+                    status=req.status,
+                    decision=req.decision,
+                    ai_decision=req.ai_decision,
+                    confidence_score=req.confidence_score,
+                    reason_category=req.reason_category,
+                    customer_explanation=req.customer_explanation,
+                    ai_reasoning=req.ai_reasoning,
+                    policy_checks=req.policy_checks or req.policy_evaluations,
+                    human_override=req.human_override,
+                    override_reason=req.override_reason,
+                    override_by=req.override_by,
+                    items=claim_items,
+                    created_at=req.created_at,
+                    updated_at=req.updated_at,
+                )
+            )
+        return history

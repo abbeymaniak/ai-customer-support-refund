@@ -63,11 +63,13 @@ describe('customerPortalApi', () => {
       customer_id: 'cust-sarah-123',
       order_id: 'ord-101',
       amount: 99.99,
+      currency: 'USD',
       status: 'pending',
       decision: 'Approved',
       confidence_score: 0.95,
       reason_category: 'defective',
       customer_explanation: 'The headphones no longer charge or turn on.',
+      human_override: false,
       created_at: '2026-09-25T14:00:00Z',
       updated_at: '2026-09-25T14:00:00Z',
     };
@@ -117,5 +119,54 @@ describe('customerPortalApi', () => {
     await expect(customerPortalApi.submitRefund(payload)).rejects.toThrow(
       'A refund claim has already been filed for this item.'
     );
+  });
+
+  it('getMyRefunds fetches claims history from /customer/refunds (covers: AC-1, AC-2)', async () => {
+    const mockClaims = [
+      {
+        id: 'claim-1',
+        request_number: 'REF-2026-001',
+        order_id: 'ord-101',
+        order_number: 'ORD-98721',
+        item_name: 'Wireless Keyboard',
+        amount: 89.99,
+        currency: 'USD',
+        status: 'approved',
+        decision: 'Approved' as const,
+        ai_decision: 'Approved',
+        confidence_score: 0.94,
+        reason_category: 'defective',
+        customer_explanation: 'Keys sticking constantly.',
+        ai_reasoning: 'Eligible for return under standard policy.',
+        human_override: false,
+        override_reason: null,
+        items: [
+          {
+            id: 'rf-item-1',
+            order_item_id: 'item-1',
+            product_name: 'Wireless Keyboard',
+            quantity: 1,
+            refund_amount: 89.99,
+            item_condition: 'opened_used',
+          },
+        ],
+        created_at: '2026-09-26T10:00:00Z',
+      },
+    ];
+
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ data: mockClaims });
+
+    const result = await customerPortalApi.getMyRefunds();
+
+    expect(apiClient.get).toHaveBeenCalledWith('/customer/refunds');
+    expect(result).toEqual(mockClaims);
+    expect(result[0].request_number).toBe('REF-2026-001');
+    expect(result[0].order_number).toBe('ORD-98721');
+  });
+
+  it('getMyRefunds propagates rejection on unauthenticated access (covers: AC-1)', async () => {
+    vi.spyOn(apiClient, 'get').mockRejectedValueOnce(new Error('Unauthorized'));
+
+    await expect(customerPortalApi.getMyRefunds()).rejects.toThrow('Unauthorized');
   });
 });

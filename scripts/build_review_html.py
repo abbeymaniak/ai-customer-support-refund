@@ -1487,6 +1487,7 @@ def generate_html() -> str:
           </p>
           <ul style="margin: 0.75rem 0 0 1.25rem; color: var(--text-muted);">
             <li><strong>Customer Portal (3 Step Wizard):</strong> Authenticated profile card, scoped order selection, duplicate claim disabling, and live AI verdict results.</li>
+            <li><strong>Role-aware Navigation:</strong> Guests see only sign-in actions; verified customers see Customer Portal and My Claims; admin-only roles receive Dashboard and AI Settings, with accessible mobile disclosure behavior and URL-driven tab state.</li>
             <li><strong>Customer Login:</strong> Dedicated customer authentication interface with quick evaluator credentials.</li>
             <li><strong>Support Lead Dashboard:</strong> Sortable, filterable table with composite risk badges.</li>
             <li><strong>Slide-Over Drawer:</strong> Inspection drawer for customer order history and supervisor overrides.</li>
