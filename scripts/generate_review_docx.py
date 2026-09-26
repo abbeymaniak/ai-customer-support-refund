@@ -113,7 +113,7 @@ def build_docx():
         "FastAPI + React 18",
         "PostgreSQL 16",
         "LiteLLM Multi-Provider",
-        "194 Tests (112 Pytest + 82 Vitest)",
+        "235 Tests (129 Pytest + 106 Vitest)",
     ]
 
     for col_idx, text in enumerate(meta_headers):
@@ -173,7 +173,7 @@ def build_docx():
     arch_bullets = [
         (
             "Presentation Layer (React 18 + Vite + Tailwind CSS v4)",
-            "Single Page Application delivering the customer refund wizard, administrative triage dashboard, slide-over detail drawers, and runtime LLM provider settings.",
+            "Single Page Application delivering the scoped customer portal with 3 step refund wizard, customer login, administrative triage dashboard, slide-over detail drawers, and runtime LLM provider settings.",
         ),
         (
             "Gateway & Reverse Proxy (Nginx)",
@@ -181,7 +181,7 @@ def build_docx():
         ),
         (
             "Service & Domain Layer (FastAPI + Pydantic v2)",
-            "Asynchronous Python backend implementing Clean Architecture. Presentation routes validate DTO schemas and call domain services without raw SQL.",
+            "Asynchronous Python backend implementing Clean Architecture. Presentation routes validate DTO schemas and call domain services including CustomerPortalService, CustomerAuthService, PolicyEngineService, and SecurityService without raw SQL.",
         ),
         (
             "Persistence Layer (SQLAlchemy 2.0 + PostgreSQL 16)",
@@ -215,7 +215,7 @@ def build_docx():
         (
             "customers",
             "Core E-Commerce",
-            "id (PK), email (UQ), name, total_spent, orders_count, refunds_count, return_rate, risk_score, account_created_at",
+            "id (PK), email (UQ), name, hashed_password (Bcrypt), role, is_active, last_login_at, total_spent, orders_count, refunds_count, return_rate, risk_score, account_created_at",
         ),
         (
             "orders",
@@ -250,7 +250,7 @@ def build_docx():
         (
             "refresh_tokens",
             "Security & Auth",
-            "id (PK), user_id (FK), token_hash (SHA-256), expires_at, revoked, created_at",
+            "id (PK), user_id (FK), customer_id (FK), token_hash (SHA-256), expires_at, revoked, created_at",
         ),
         (
             "llm_providers",
@@ -446,10 +446,12 @@ def build_docx():
     h7.paragraph_format.space_before = Pt(16)
     h7.paragraph_format.space_after = Pt(6)
 
-    doc.add_paragraph("Quality assurance is enforced across 194 automated test suites:")
+    doc.add_paragraph("Quality assurance is enforced across 235 automated test suites:")
 
     doc.add_paragraph(
-        "Backend Pytest Suite (112 Tests Passed in 44.28s):\n"
+        "Backend Pytest Suite (129 Tests Passed in 24.49s):\n"
+        "- test_customer_portal_api.py: Scoped orders, ownership validation, and claim deduplication.\n"
+        "- test_customer_auth_api.py: Customer login, refresh rotation, revocation, and role isolation.\n"
         "- test_admin_api.py: Queue filtering, pagination, statistics, and manual overrides.\n"
         "- test_ai_engine.py: LiteLLM response parsing, mock retries, and fallback transitions.\n"
         "- test_auth_api.py: JWT cookie issuance, token refresh replay detection, and revocation.\n"
@@ -459,8 +461,12 @@ def build_docx():
     )
 
     doc.add_paragraph(
-        "Frontend Vitest Suite (82 Tests Passed in 953ms):\n"
-        "- RefundRequest.test.tsx: Form wizard steps, order loading, and outcome rendering.\n"
+        "Frontend Vitest Suite (106 Tests Passed in 1.48s across 16 test files):\n"
+        "- RefundRequest.test.tsx: 3-step wizard, scoped orders, and claim badge disabling.\n"
+        "- CustomerLogin.test.tsx: Customer login form, persona presets, and auth state.\n"
+        "- CustomerRoute.test.tsx: Customer session protection and returnUrl redirects.\n"
+        "- customerPortal.test.ts: Scoped order retrieval and claim submission API client.\n"
+        "- customerAuth.test.ts: Customer login, refresh rotation, and profile API client.\n"
         "- AdminDashboard.test.tsx: Search filters, risk badges, and detail slide-over drawers.\n"
         "- AdminSettings.test.tsx: Provider selection, credential inputs, and test probes.\n"
         "- AdminRoute.test.tsx: Unauthenticated redirect handling and role authorization.\n"
@@ -486,7 +492,7 @@ def build_docx():
         "2. Presentation Layer: FastAPI routes validate all incoming JSON payloads using strict Pydantic v2 schemas and "
         "inject asynchronous database sessions via dependency injection.\n"
         "3. Application Service Layer: Business logic is decoupled across specialized domain services including "
-        "PolicyEngineService, AIDecisionEngine, AnomalyDetectionService, and SecurityService.\n"
+        "CustomerPortalService, CustomerAuthService, PolicyEngineService, AIDecisionEngine, AnomalyDetectionService, and SecurityService.\n"
         "4. Relational Persistence Layer: PostgreSQL 16 stores 10 normalized tables accessed via SQLAlchemy 2.0 with asyncpg connection pooling.\n"
         "5. AI Inference Gateway: LiteLLM abstracts communication with OpenAI, local Ollama, and Google Gemini."
     )
@@ -503,8 +509,10 @@ def build_docx():
         "attempt tricks an LLM into approving a final sale item, the guardrail immediately overrides the outcome to denied and logs a security incident.\n\n"
         "Decision 3 (Database Backed Multi Provider Gateway): Provider settings and API keys are stored in PostgreSQL rather "
         "than environment variables alone. Administrators can switch active providers and test endpoint connectivity live in the Admin UI without redeploying containers.\n\n"
-        "Decision 4 (HttpOnly JWT Authentication): Admin authentication uses HttpOnly SameSite cookies with cryptographic "
-        "refresh token rotation and automatic reuse replay detection."
+        "Decision 4 (HttpOnly JWT Authentication): Admin and customer authentication use separate HttpOnly SameSite cookies with cryptographic "
+        "refresh token rotation and automatic reuse replay detection.\n\n"
+        "Decision 5 (Scoped Customer Identity & Order Ownership): Customer claims derive identity strictly from validated session tokens. "
+        "The backend rejects claims where the order does not belong to current_customer.id with HTTP 403 Forbidden, and blocks duplicate claims with HTTP 400."
     )
 
     h8_3 = doc.add_heading("8.3 Meaningful AI Integration & Prompt Isolation", level=2)
@@ -524,8 +532,8 @@ def build_docx():
     doc.add_paragraph(
         "Development followed the Tracer Bullet methodology: Slice 1 established an end to end working thread across database, "
         "API, AI engine, and customer UI; Slice 2 implemented the administrative dashboard, JWT authentication, and prompt injection defense; "
-        "Slice 3 delivered security hardening, Docker orchestration, and multi provider settings. Git history reflects this with 12 feature branches "
-        "and conventional commit messages."
+        "Slice 3 delivered security hardening, Docker orchestration, and multi provider settings; Slice 4 implemented customer authentication "
+        "and the scoped customer refund portal. Git history reflects this with dedicated feature branches and conventional commit messages."
     )
 
     h8_5 = doc.add_heading("8.5 Comprehensive 8 Point Evaluation Scorecard", level=2)
@@ -540,7 +548,7 @@ def build_docx():
                 "Yes. The entire user journey executes smoothly across database, backend API, AI inference, and responsive frontend interfaces. "
                 "Customers submit claims and receive instant verdicts. Administrators inspect risk metrics and override decisions in real time."
             ),
-            "Evidence: Docker Compose topology active on ports 3000, 8000, 5433; 16 pre seeded customer personas; 194 automated tests passing.",
+            "Evidence: Docker Compose topology active on ports 3000, 8000, 5433; 16 pre seeded customer personas; 235 automated tests passing.",
         ),
         (
             "2. AI Integration",
@@ -558,7 +566,7 @@ def build_docx():
                 "Yes. Built with FastAPI and SQLAlchemy 2.0 asyncpg, the backend adheres to Clean Architecture. Route handlers validate DTOs and delegate "
                 "to specialized domain services. Features connection pooling, Alembic migrations, idempotency keys, and structured logging."
             ),
-            "Evidence: 112 pytest tests passing; Ruff linter passing with zero errors; auto generated OpenAPI documentation at /docs.",
+            "Evidence: 129 pytest tests passing; Ruff linter passing with zero errors; auto generated OpenAPI documentation at /docs.",
         ),
         (
             "4. Frontend Quality",
@@ -567,7 +575,7 @@ def build_docx():
                 "Yes. Built with React 18, TypeScript, and Tailwind CSS v4. Features an accessible 3 step refund wizard, live policy outcome cards, "
                 "and an administrative dashboard with real time filtering, slide over inspection drawers, and risk indicator badges."
             ),
-            "Evidence: 82 Vitest tests passing; WCAG accessible design primitives; zero TypeScript compilation errors.",
+            "Evidence: 106 Vitest tests passing across 16 test files; WCAG accessible design primitives; zero TypeScript compilation errors.",
         ),
         (
             "5. System Architecture",

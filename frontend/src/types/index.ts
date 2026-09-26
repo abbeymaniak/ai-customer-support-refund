@@ -21,6 +21,9 @@ export interface OrderItem {
   condition?: string;
   quantity?: number;
   is_final_sale?: boolean;
+  has_active_claim?: boolean;
+  claim_status?: string | null;
+  claim_request_number?: string | null;
 }
 
 export interface Order {
@@ -252,4 +255,14 @@ export interface CustomerLoginCredentials {
   email: string;
   password: string;
 }
+
+export interface CustomerRefundClaimPayload {
+  order_id: string;
+  item_id: string;
+  reason_category: string;
+  customer_explanation: string;
+  quantity?: number;
+  item_condition?: string;
+}
+
 

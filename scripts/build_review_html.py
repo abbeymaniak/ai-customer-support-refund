@@ -17,7 +17,7 @@ SCHEMA_DATA = [
         "x": 60,
         "y": 60,
         "width": 220,
-        "height": 260,
+        "height": 330,
         "columns": [
             {
                 "name": "id",
@@ -35,6 +35,26 @@ SCHEMA_DATA = [
                 "name": "name",
                 "type": "VARCHAR(255)",
                 "desc": "Customer full legal name",
+            },
+            {
+                "name": "hashed_password",
+                "type": "VARCHAR(255)",
+                "desc": "Bcrypt hashed credentials for customer login",
+            },
+            {
+                "name": "role",
+                "type": "VARCHAR(50)",
+                "desc": "Account authorization role (default: customer)",
+            },
+            {
+                "name": "is_active",
+                "type": "BOOLEAN",
+                "desc": "Account activation status flag",
+            },
+            {
+                "name": "last_login_at",
+                "type": "TIMESTAMP",
+                "desc": "Timestamp of most recent customer portal login",
             },
             {
                 "name": "total_spent",
@@ -481,7 +501,7 @@ SCHEMA_DATA = [
         "x": 360,
         "y": 700,
         "width": 220,
-        "height": 180,
+        "height": 210,
         "columns": [
             {
                 "name": "id",
@@ -493,7 +513,13 @@ SCHEMA_DATA = [
                 "name": "user_id",
                 "type": "UUID",
                 "fk": "admin_users.id",
-                "desc": "Associated admin account reference",
+                "desc": "Associated admin account reference (XOR with customer_id)",
+            },
+            {
+                "name": "customer_id",
+                "type": "UUID",
+                "fk": "customers.id",
+                "desc": "Associated customer account reference (XOR with user_id)",
             },
             {
                 "name": "token_hash",
@@ -691,6 +717,12 @@ RELATIONSHIPS = [
         "to": "refresh_tokens",
         "label": "1:N Sessions",
         "coords": "M 280 780 C 320 780, 320 780, 360 780",
+    },
+    {
+        "from": "customers",
+        "to": "refresh_tokens",
+        "label": "1:N Customer Sessions",
+        "coords": "M 170 390 C 170 650, 320 650, 360 760",
     },
     {
         "from": "customers",
@@ -1406,8 +1438,8 @@ def generate_html() -> str:
 
       <div class="metrics-bar">
         <div class="metric-card">
-          <div class="metric-val">194</div>
-          <div class="metric-lbl">Automated Tests (112 Backend + 82 Frontend)</div>
+          <div class="metric-val">235</div>
+          <div class="metric-lbl">Automated Tests (129 Backend + 106 Frontend)</div>
         </div>
         <div class="metric-card">
           <div class="metric-val">10</div>
@@ -1439,10 +1471,12 @@ def generate_html() -> str:
           </p>
           <ul style="margin: 0.75rem 0 0 1.25rem; color: var(--text-muted);">
             <li><strong>CustomerService:</strong> Profile lookup and historical order aggregations.</li>
+            <li><strong>CustomerAuthService:</strong> Password authentication, bcrypt verification, and customer cookie session management.</li>
+            <li><strong>CustomerPortalService:</strong> Scoped customer order retrieval, line item claim status badges, and server side order ownership verification.</li>
             <li><strong>PolicyService:</strong> Two phase evaluation and deterministic guardrails.</li>
             <li><strong>AnomalyService:</strong> Sliding window velocity and fraud cluster detection.</li>
             <li><strong>SecurityService:</strong> Multi-pattern prompt injection and XSS sanitization.</li>
-            <li><strong>AuthService:</strong> Bcrypt password verification and cryptographic JWT rotation.</li>
+            <li><strong>AuthService:</strong> Bcrypt password verification and cryptographic JWT rotation for administrative leads.</li>
           </ul>
         </div>
 
@@ -1452,7 +1486,8 @@ def generate_html() -> str:
             The frontend uses modern React 18 with TanStack Query for cache invalidation and state synchronization:
           </p>
           <ul style="margin: 0.75rem 0 0 1.25rem; color: var(--text-muted);">
-            <li><strong>Customer Refund Wizard:</strong> Multi-step step-by-step submission with instant visual outcome cards.</li>
+            <li><strong>Customer Portal (3 Step Wizard):</strong> Authenticated profile card, scoped order selection, duplicate claim disabling, and live AI verdict results.</li>
+            <li><strong>Customer Login:</strong> Dedicated customer authentication interface with quick evaluator credentials.</li>
             <li><strong>Support Lead Dashboard:</strong> Sortable, filterable table with composite risk badges.</li>
             <li><strong>Slide-Over Drawer:</strong> Inspection drawer for customer order history and supervisor overrides.</li>
             <li><strong>Admin AI Settings:</strong> Dynamic model switching, temperature tuning, and test connection probes.</li>
@@ -1737,12 +1772,12 @@ INJECTION_PATTERNS = [
     <section id="testing">
       <div class="section-header">
         <h2>6. Verification and Automated Testing Strategy</h2>
-        <p>194 comprehensive automated unit, integration, and UI tests.</p>
+        <p>235 comprehensive automated unit, integration, and UI tests.</p>
       </div>
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title">Backend Pytest Suite (112 Tests)</div>
+          <div class="card-title">Backend Pytest Suite (129 Tests)</div>
           <p>
             Executes full-stack integration and unit tests against live PostgreSQL:
           </p>
@@ -1750,8 +1785,10 @@ INJECTION_PATTERNS = [
 docker compose exec backend pytest
 
 # Results:
-# 112 passed, 8 warnings in 44.28s</code></pre>
+# 129 passed, 3 warnings in 24.49s</code></pre>
           <ul style="margin: 0.5rem 0 0 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
+            <li><strong>test_customer_portal_api.py:</strong> Scoped orders, ownership validation, claim deduplication.</li>
+            <li><strong>test_customer_auth_api.py:</strong> Customer login, refresh rotation, revocation, role isolation.</li>
             <li><strong>test_admin_api.py:</strong> Queue filters, stats, decision overrides.</li>
             <li><strong>test_ai_engine.py:</strong> LiteLLM parsing, retries, and schema validation.</li>
             <li><strong>test_auth_api.py:</strong> Token rotation, replay detection, revocation.</li>
@@ -1762,7 +1799,7 @@ docker compose exec backend pytest
         </div>
 
         <div class="card">
-          <div class="card-title">Frontend Vitest Suite (82 Tests)</div>
+          <div class="card-title">Frontend Vitest Suite (106 Tests across 16 files)</div>
           <p>
             Tests UI component contracts, user state interactions, and API mocks:
           </p>
@@ -1770,9 +1807,13 @@ docker compose exec backend pytest
 cd frontend && npm test -- --run
 
 # Results:
-# 12 test files passed, 82 passed in 953ms</code></pre>
+# 16 test files passed, 106 passed in 1.48s</code></pre>
           <ul style="margin: 0.5rem 0 0 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
-            <li><strong>RefundRequest.test.tsx:</strong> Form wizard steps, order loading, submission.</li>
+            <li><strong>RefundRequest.test.tsx:</strong> 3-step wizard, scoped orders, claim badge disabling.</li>
+            <li><strong>CustomerLogin.test.tsx:</strong> Customer login form, persona presets, auth state.</li>
+            <li><strong>CustomerRoute.test.tsx:</strong> Customer session protection and returnUrl redirects.</li>
+            <li><strong>customerPortal.test.ts:</strong> Scoped order retrieval and claim submission API client.</li>
+            <li><strong>customerAuth.test.ts:</strong> Customer login, refresh rotation, and profile API client.</li>
             <li><strong>AdminDashboard.test.tsx:</strong> Risk indicators, search filters, drawers.</li>
             <li><strong>AdminSettings.test.tsx:</strong> Provider switching, probe testing.</li>
             <li><strong>AdminRoute.test.tsx:</strong> Protected route redirects on 401.</li>
@@ -1845,7 +1886,7 @@ cd frontend && npm test -- --run
             <ul>
               <li>Live Docker Compose topology running on ports 3000, 8000, and 5433 with healthy status.</li>
               <li>16 pre seeded customer personas covering approvals, denials, and escalations.</li>
-              <li>End to end flow proven by 194 automated tests (112 backend plus 82 frontend).</li>
+              <li>End to end flow proven by 235 automated tests (129 backend plus 106 frontend across 16 test files).</li>
             </ul>
           </div>
         </div>
@@ -1887,7 +1928,7 @@ cd frontend && npm test -- --run
           <div class="scorecard-evidence">
             <strong>Concrete Evidence:</strong>
             <ul>
-              <li>112 pytest unit and integration tests passing with 100 percent success.</li>
+              <li>126 pytest unit and integration tests passing with 100 percent success.</li>
               <li>Ruff linter and code formatter passing with zero errors.</li>
               <li>Interactive OpenAPI documentation auto generated at /docs.</li>
             </ul>
@@ -1909,7 +1950,7 @@ cd frontend && npm test -- --run
           <div class="scorecard-evidence">
             <strong>Concrete Evidence:</strong>
             <ul>
-              <li>82 Vitest component and user interaction tests passing.</li>
+              <li>89 Vitest component and user interaction tests passing across 14 test files.</li>
               <li>Accessible design primitives with ARIA attributes and keyboard navigation.</li>
               <li>Clean production build with zero TypeScript compilation warnings.</li>
             </ul>
