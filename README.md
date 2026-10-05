@@ -13,14 +13,14 @@ The platform evaluates incoming customer refund claims against machine readable 
 ```mermaid
 graph TD
     Client[Browser / User Agent]
-    
+
     subgraph Frontend Container [refund_frontend : Port 3000]
         Nginx[Nginx Reverse Proxy & Static Host]
         ReactSPA[React 18 SPA / Vite / Tailwind CSS v4]
         CustPortal[Scoped Customer Portal / 3-Step Wizard]
         AdminDash[Admin Dashboard & Override Controls]
     end
-    
+
     subgraph Backend Container [refund_backend : Port 8000]
         FastAPI[FastAPI Application Server]
         AdminAuth[Admin JWT Authentication & Cookies]
@@ -31,13 +31,13 @@ graph TD
         SecurityService[Prompt Injection Sanitizer]
         AIEngine[AI Decision Engine / LiteLLM]
     end
-    
+
     subgraph Database Container [refund_postgres : Port 5433 / 5432]
         Postgres[(PostgreSQL 16 Relational Storage)]
         SeedData[(16 Customer Personas & Seed Orders)]
         AuditTrail[(JSONB Immutable Audit Logs)]
     end
-    
+
     subgraph External LLM Services
         OpenAI[OpenAI gpt-4o-mini]
         Ollama[Local Ollama llama3]
@@ -76,11 +76,13 @@ graph TD
 ## Key System Capabilities
 
 ### 1. Two Phase Decision Pipeline with Deterministic Guardrails
+
 - **Phase 1 (Deterministic Check)**: Before invoking external AI models, the engine verifies hard business policies (e.g. final sale items, expired return window, orders not delivered). Immediate denials or escalations occur with zero AI token consumption.
 - **Phase 2 (AI Evaluation)**: Eligible claims are evaluated by the AI engine, analyzing customer return reasoning, product condition, and purchase context against store guidelines.
 - **Post Evaluation Safety Guardrails**: AI decisions pass through a deterministic validation interceptor. If an AI model hallucinates or attempts to approve a prohibited item due to prompt injection, the guardrail immediately overrides the decision to `denied` and logs a security incident.
 
 ### 2. Customer Authentication and Scoped Refund Portal
+
 - **Isolated Authentication**: Dedicated customer authentication service issuing scoped JWT tokens stored in HTTP-only `customer_access_token` and `customer_refresh_token` cookies, completely decoupled from administrative credentials.
 - **Session Derived Identity**: Zero client side identity spoofing. Customers never enter manual emails or select sample personas; all claims derive customer identity strictly from the verified session context.
 - **Server Side Order Ownership**: Every claim submission validates that the target `order_id` belongs to `current_customer.id`, rejecting unauthorized access with HTTP 403 Forbidden.
@@ -89,17 +91,20 @@ graph TD
 - **3 Step Return Wizard**: Intuitive customer experience guiding users through Order & Item Selection, Reason & Notes, and Review & Confirmation with real time validation.
 
 ### 3. Multi Provider LLM Integration
+
 - Supports **OpenAI** (`gpt-4o-mini`), **Local Ollama** (`llama3`), and **Google Gemini** (`gemini-1.5-flash`).
 - Administrators can switch active providers and test endpoint connectivity live in the Admin Settings UI without redeploying containers.
 - Failures, timeouts, or network disconnections gracefully degrade to human supervisor escalation with structured audit telemetry.
 
 ### 4. Security Hardening and Fraud Prevention
+
 - **Prompt Injection Defense**: Multi pattern regex sanitizer intercepts delimiter manipulation, role hijacking, instruction overrides, and script tags, neutralizing adversarial inputs before processing.
 - **Velocity Limit Anomalies**: Flags customers submitting 3 or more refund requests within a rolling 24 hour window.
 - **High Value Clusters**: Flags claims exceeding $200.00 individually or $500.00 cumulatively over 7 days.
 - **Conflicting Claim Detection**: Identifies duplicate claims filed against the same order line item within 30 days.
 
 ### 5. Administrative Control and Operational Oversight
+
 - Role based authentication using HTTP-only cookies with cryptographic JWT refresh token rotation.
 - Real time dashboard displaying refund metrics, risk scores, anomaly badges, and policy summaries.
 - Slide over inspection drawer providing customer purchase history, AI confidence ratings, policy rule checks, and supervisor decision override tools.
@@ -111,12 +116,14 @@ graph TD
 The complete full stack application boots from scratch with a single command. Database schemas, Alembic migrations, and 16 customer test personas are automatically provisioned.
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/abbeymaniak/ai-customer-support-refund.git
 cd ai-customer-support-refund
 ```
 
 ### 2. Launch Containers
+
 ```bash
 # Run detached in the background
 docker compose up -d
@@ -126,6 +133,7 @@ docker compose up --build
 ```
 
 ### 3. Access Live Application Surfaces
+
 - **Public Storefront & Landing**: [http://localhost:3000](http://localhost:3000)
 - **Customer Authentication**: [http://localhost:3000/login](http://localhost:3000/login)
 - **Scoped Customer Refund Portal**: [http://localhost:3000/portal](http://localhost:3000/portal)
@@ -136,10 +144,13 @@ docker compose up --build
 - **PostgreSQL Database**: Host port `5433` (internal `5432`) (`refunds_user` / `refunds_pass`)
 
 ### 4. Stop and Reset Options
+
 - **Stop containers and preserve data**:
+
   ```bash
   docker compose down
   ```
+
   Halts and removes the running containers while keeping all submitted refund claims, admin settings, and database records safely stored in the `postgres_data` volume.
 
 - **Full factory reset (wipe database and reseed)**:
@@ -153,31 +164,34 @@ docker compose up --build
 ## Default Test Personas and Credentials
 
 ### Customer Evaluator Accounts
+
 Log in at [http://localhost:3000/login](http://localhost:3000/login) using any seeded customer persona (all seeded customers share the default password `customer123`). Quick login buttons are also provided on the customer login page for evaluator convenience:
 
-| Customer Persona | Email | Password | Orders | Risk Score | Expected Test Scenario |
-|---|---|---|---|---|---|
-| Sarah Jenkins (Loyal VIP) | `sarah.jenkins@example.com` | `customer123` | 18 | 0.05 | Immediate auto approval for standard returns |
-| Marcus Vance (Serial Returner) | `marcus.vance@example.com` | `customer123` | 5 | 0.85 | Velocity and return rate anomaly escalation |
-| Victoria Sterling (High Spender) | `victoria.sterling@example.com` | `customer123` | 32 | 0.10 | Low risk processing across premium purchases |
-| Amanda Price (Final Sale) | `amanda.price@example.com` | `customer123` | 2 | 0.70 | Deterministic policy denial on clearance item |
-| James Wilson (High Value) | `james.wilson@example.com` | `customer123` | 4 | 0.65 | Escalation for claim amount exceeding $500 threshold |
-| Kevin Chen (Expired Window) | `kevin.chen@example.com` | `customer123` | 3 | 0.75 | Deterministic policy denial for delivery > 90 days ago |
+| Customer Persona                 | Email                           | Password      | Orders | Risk Score | Expected Test Scenario                                 |
+| -------------------------------- | ------------------------------- | ------------- | ------ | ---------- | ------------------------------------------------------ |
+| Sarah Jenkins (Loyal VIP)        | `sarah.jenkins@example.com`     | `customer123` | 18     | 0.05       | Immediate auto approval for standard returns           |
+| Marcus Vance (Serial Returner)   | `marcus.vance@example.com`      | `customer123` | 5      | 0.85       | Velocity and return rate anomaly escalation            |
+| Victoria Sterling (High Spender) | `victoria.sterling@example.com` | `customer123` | 32     | 0.10       | Low risk processing across premium purchases           |
+| Amanda Price (Final Sale)        | `amanda.price@example.com`      | `customer123` | 2      | 0.70       | Deterministic policy denial on clearance item          |
+| James Wilson (High Value)        | `james.wilson@example.com`      | `customer123` | 4      | 0.65       | Escalation for claim amount exceeding $500 threshold   |
+| Kevin Chen (Expired Window)      | `kevin.chen@example.com`        | `customer123` | 3      | 0.75       | Deterministic policy denial for delivery > 90 days ago |
 
 ### Administrative Evaluator Accounts
+
 Log in at [http://localhost:3000/admin/login](http://localhost:3000/admin/login) using either account:
 
-| Account | Email | Password | Role |
-|---|---|---|---|
-| Store Administrator | `admin@store.com` | `admin123` | admin |
+| Account              | Email                    | Password            | Role  |
+| -------------------- | ------------------------ | ------------------- | ----- |
+| Store Administrator  | `admin@store.com`        | `admin123`          | admin |
 | System Administrator | `admin@refunds.internal` | `AdminPassword123!` | admin |
-| Support Lead | `lead@store.com` | `lead123` | agent |
+| Support Lead         | `lead@store.com`         | `lead123`           | agent |
 
 ---
 
 ## Policy Engine Configuration (`data/refund_policy.json`)
 
 The store policy defines explicit boundaries:
+
 - **Return Time Window**: Standard 30 days from delivery; extended 90 days for damaged or defective goods.
 - **Auto Approval Limit**: Claims up to $100.00 qualify for automated approval when policy conditions are met.
 - **Human Escalation Threshold**: Single item requests above $500.00 require supervisor intervention.
@@ -189,6 +203,7 @@ The store policy defines explicit boundaries:
 ## Local Development (Without Docker)
 
 ### Backend Service Setup
+
 ```bash
 cd backend
 python3 -m venv .venv
@@ -198,11 +213,13 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend Application Setup
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
 Development frontend runs at [http://localhost:5173](http://localhost:5173).
 
 ---
@@ -212,11 +229,15 @@ Development frontend runs at [http://localhost:5173](http://localhost:5173).
 The repository maintains full automated test coverage across backend business logic and frontend user interfaces (235 total tests).
 
 ### Backend Pytest Suite (129 tests)
+
 Run tests inside the live backend container:
+
 ```bash
 docker compose exec backend pytest
 ```
+
 Or execute locally on your host environment:
+
 ```bash
 cd backend
 source .venv/bin/activate
@@ -224,12 +245,16 @@ pytest
 ```
 
 ### Frontend Vitest Suite (106 tests across 16 test files)
+
 Run unit and component tests:
+
 ```bash
 cd frontend
 npm test -- --run
 ```
+
 Validate TypeScript types and build bundle:
+
 ```bash
 cd frontend
 npm run build
@@ -254,8 +279,6 @@ Comprehensive technical walkthrough documents are provided for evaluators:
      ```bash
      python scripts/generate_review_docx.py
      ```
-
-*(Note: Generated `review.html` and `review.docx` files are excluded from git tracking via `.gitignore` to maintain repository cleanliness).*
 
 ---
 
