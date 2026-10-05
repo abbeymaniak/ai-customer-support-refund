@@ -82,9 +82,7 @@ async def test_submit_customer_refund_order_ownership_mismatch(async_client, db_
     sarah = (await db_session.execute(sarah_stmt)).scalar_one()
 
     order_stmt = (
-        select(Order)
-        .where(Order.customer_id == sarah.id)
-        .options(selectinload(Order.order_items))
+        select(Order).where(Order.customer_id == sarah.id).options(selectinload(Order.order_items))
     )
     sarah_order = (await db_session.execute(order_stmt)).scalars().first()
     assert sarah_order is not None
@@ -122,9 +120,7 @@ async def test_submit_customer_refund_item_mismatch_and_bounds(async_client, db_
     sarah_stmt = select(Customer).where(Customer.email == "sarah.jenkins@example.com")
     sarah = (await db_session.execute(sarah_stmt)).scalar_one()
     order_stmt = (
-        select(Order)
-        .where(Order.customer_id == sarah.id)
-        .options(selectinload(Order.order_items))
+        select(Order).where(Order.customer_id == sarah.id).options(selectinload(Order.order_items))
     )
     sarah_order = (await db_session.execute(order_stmt)).scalars().first()
     sarah_item = sarah_order.order_items[0]
@@ -507,7 +503,10 @@ async def test_get_customer_refunds_scoped_isolation(async_client, db_session):
     assert claims_a[0]["item_name"] == "Wireless Keyboard"
     assert claims_a[0]["amount"] == 75.0
     assert claims_a[0]["decision"] == "Approved"
-    assert claims_a[0]["ai_reasoning"] == "Defective hardware eligible for immediate refund within warranty."
+    assert (
+        claims_a[0]["ai_reasoning"]
+        == "Defective hardware eligible for immediate refund within warranty."
+    )
 
 
 @pytest.mark.asyncio
@@ -639,5 +638,3 @@ async def test_get_customer_refunds_descending_order_and_override_details(async_
     assert claims[1]["request_number"] == older_claim.request_number
     assert claims[1]["item_name"] == "Gaming Mouse"
     assert claims[1]["human_override"] is False
-
-

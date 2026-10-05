@@ -49,4 +49,3 @@ class Customer(Base):
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         "RefreshToken", back_populates="customer", cascade="all, delete-orphan"
     )
-

@@ -122,4 +122,3 @@ describe('CustomerLoginPage Component', () => {
     expect(markup).toContain('Sign In');
   });
 });
-

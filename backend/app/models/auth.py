@@ -65,4 +65,3 @@ class RefreshToken(Base):
 
     user: Mapped["AdminUser | None"] = relationship("AdminUser", back_populates="refresh_tokens")
     customer: Mapped["Customer | None"] = relationship("Customer", back_populates="refresh_tokens")
-

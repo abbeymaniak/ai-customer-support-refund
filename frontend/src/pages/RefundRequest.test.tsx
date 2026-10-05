@@ -5,7 +5,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen } from '@testing-library/react';
-import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { RefundRequestPage } from './RefundRequest';
 import * as CustomerAuthContextModule from '../context/CustomerAuthContext';
@@ -234,7 +234,9 @@ describe('RefundRequestPage Component', () => {
     const markup = renderWithClient(<RefundRequestPage />, []);
 
     expect(markup).toContain('No Orders Found');
-    expect(markup).toContain('You do not have any past purchase orders associated with this account');
+    expect(markup).toContain(
+      'You do not have any past purchase orders associated with this account'
+    );
   });
 
   it('renders loading state when fetching customer orders (covers: AC-5)', () => {
@@ -325,19 +327,19 @@ describe('RefundRequestPage Component', () => {
     expect(markup).toContain('65% Confidence');
     expect(markup).toContain('Supervisor Override Applied');
     expect(markup).toContain('lead.supervisor@example.com');
-    expect(markup).toContain('Customer submitted clear photographic evidence of courier box damage.');
+    expect(markup).toContain(
+      'Customer submitted clear photographic evidence of courier box damage.'
+    );
     expect(markup).toContain('Close Inspection');
   });
 
   it('renders empty state when customer has zero refund claims (covers: AC-1, AC-4)', () => {
-    const markup = renderWithClient(
-      <RefundRequestPage initialTab="claims" />,
-      mockOrders,
-      []
-    );
+    const markup = renderWithClient(<RefundRequestPage initialTab="claims" />, mockOrders, []);
 
     expect(markup).toContain('No Refund Claims Yet');
-    expect(markup).toContain("You haven&#x27;t filed any refund requests for your purchase orders.");
+    expect(markup).toContain(
+      'You haven&#x27;t filed any refund requests for your purchase orders.'
+    );
     expect(markup).toContain('File Your First Refund');
   });
 
@@ -409,7 +411,9 @@ describe('RefundRequestPage Component', () => {
         {
           path: '/portal',
           element: (
-            <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+            <QueryClientProvider
+              client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+            >
               <RefundRequestPage />
             </QueryClientProvider>
           ),
@@ -523,4 +527,3 @@ describe('RefundRequestPage Component', () => {
     });
   });
 });
-

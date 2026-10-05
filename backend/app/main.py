@@ -53,7 +53,9 @@ app.add_middleware(
 # Register routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(customer_auth.router, prefix="/api/customer/auth", tags=["Customer Authentication"])
+app.include_router(
+    customer_auth.router, prefix="/api/customer/auth", tags=["Customer Authentication"]
+)
 app.include_router(customer_portal.router, prefix="/api/customer", tags=["Customer Portal"])
 app.include_router(refunds.router, prefix="/api/refunds", tags=["Refunds"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])

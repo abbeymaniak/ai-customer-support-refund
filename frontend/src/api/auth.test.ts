@@ -69,19 +69,15 @@ describe('authApi', () => {
   });
 
   it('login throws error on rejected credentials', async () => {
-    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
-      new Error('Invalid email or password')
-    );
+    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('Invalid email or password'));
 
-    await expect(
-      authApi.login({ email: 'bad@store.com', password: 'wrong' })
-    ).rejects.toThrow('Invalid email or password');
+    await expect(authApi.login({ email: 'bad@store.com', password: 'wrong' })).rejects.toThrow(
+      'Invalid email or password'
+    );
   });
 
   it('refresh throws error when session cannot be renewed', async () => {
-    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
-      new Error('Session expired')
-    );
+    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('Session expired'));
 
     await expect(authApi.refresh()).rejects.toThrow('Session expired');
   });

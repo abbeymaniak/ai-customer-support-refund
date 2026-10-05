@@ -1,12 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './context/AuthContext';
-import { CustomerAuthProvider } from './context/CustomerAuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext';
 import { AdminRoute } from './components/AdminRoute';
 import { CustomerRoute } from './components/CustomerRoute';
 import { Navbar } from './components/Navbar';
-import { LandingPage } from './pages/LandingPage';
 import { RefundRequestPage } from './pages/RefundRequest';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import { RequestDetailPage } from './pages/RequestDetail';
@@ -23,6 +22,22 @@ const queryClient = new QueryClient({
   },
 });
 
+const RootRedirect: React.FC = () => {
+  const { isAuthenticated: isAdminAuthenticated, isLoading: isAdminLoading } = useAuth();
+  const { isAuthenticated: isCustomerAuthenticated, isLoading: isCustomerLoading } =
+    useCustomerAuth();
+
+  if (isAdminLoading || isCustomerLoading) {
+    return null;
+  }
+
+  if (isCustomerAuthenticated) {
+    return <Navigate to="/portal" replace />;
+  }
+
+  return <Navigate to={isAdminAuthenticated ? '/admin' : '/login'} replace />;
+};
+
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -33,8 +48,7 @@ export const App: React.FC = () => {
               <Navbar />
               <main className="flex-1 pb-16">
                 <Routes>
-                  {/* Public Landing Page */}
-                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/" element={<RootRedirect />} />
 
                   {/* Customer Authentication */}
                   <Route path="/login" element={<CustomerLoginPage />} />
@@ -82,7 +96,8 @@ export const App: React.FC = () => {
                 </Routes>
               </main>
               <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-                AI Customer Support Refund System &bull; Production Architecture Challenge &bull; 2026
+                AI Customer Support Refund System &bull; Production Architecture Challenge &bull;
+                2026
               </footer>
             </div>
           </CustomerAuthProvider>

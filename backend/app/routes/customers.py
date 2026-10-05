@@ -76,4 +76,3 @@ async def get_customer_refunds(
         )
     refunds = await customer_service.get_customer_refunds(customer_id)
     return [RefundRequestResponse.model_validate(r) for r in refunds]
-

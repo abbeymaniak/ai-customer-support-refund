@@ -132,7 +132,9 @@ class CustomerRefundClaimPayload(BaseModel):
             "other",
         }
         if cleaned not in valid_categories:
-            raise ValueError(f"Invalid reason category. Must be one of: {', '.join(sorted(valid_categories))}")
+            raise ValueError(
+                f"Invalid reason category. Must be one of: {', '.join(sorted(valid_categories))}"
+            )
         return cleaned
 
     @field_validator("item_condition")
@@ -141,5 +143,7 @@ class CustomerRefundClaimPayload(BaseModel):
         cleaned = v.strip().lower()
         valid_conditions = {"unopened", "opened_used", "damaged"}
         if cleaned not in valid_conditions:
-            raise ValueError(f"Invalid item condition. Must be one of: {', '.join(sorted(valid_conditions))}")
+            raise ValueError(
+                f"Invalid item condition. Must be one of: {', '.join(sorted(valid_conditions))}"
+            )
         return cleaned

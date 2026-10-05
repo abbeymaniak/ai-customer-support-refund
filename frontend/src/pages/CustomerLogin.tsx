@@ -6,14 +6,18 @@ import { Lock, Mail, AlertCircle, ArrowRight, UserCheck, ShieldCheck } from 'luc
 const SAMPLE_CUSTOMERS = [
   { name: 'Sarah Jenkins', email: 'sarah.jenkins@example.com', badge: '18 Orders · VIP' },
   { name: 'David Miller', email: 'david.miller@example.com', badge: '4 Orders · Standard' },
-  { name: 'Elena Rostova', email: 'elena.rostova@example.com', badge: '6 Orders · Frequent Returns' },
+  {
+    name: 'Elena Rostova',
+    email: 'elena.rostova@example.com',
+    badge: '6 Orders · Frequent Returns',
+  },
 ];
 
 export const CustomerLoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/';
+  const returnUrl = searchParams.get('returnUrl') || '/portal';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,7 +80,10 @@ export const CustomerLoginPage: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="customer-email" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label
+                htmlFor="customer-email"
+                className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
+              >
                 Email Address
               </label>
               <div className="relative rounded-lg shadow-sm">
@@ -96,7 +103,10 @@ export const CustomerLoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="customer-password" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label
+                htmlFor="customer-password"
+                className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
+              >
                 Password
               </label>
               <div className="relative rounded-lg shadow-sm">
@@ -166,7 +176,10 @@ export const CustomerLoginPage: React.FC = () => {
 
           <div className="mt-6 text-center text-xs text-slate-500">
             Looking for administrative management?{' '}
-            <Link to="/admin/login" className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline">
+            <Link
+              to="/admin/login"
+              className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+            >
               Support Staff Login &rarr;
             </Link>
           </div>

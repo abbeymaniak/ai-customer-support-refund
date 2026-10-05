@@ -1,12 +1,13 @@
 """Integration tests for customer authentication, JWT protection, token rotation, and role isolation."""
 
 import uuid
+from datetime import datetime
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.models.auth import AdminUser, RefreshToken
+from app.models.auth import RefreshToken
 from app.models.customer import Customer
 from app.services.auth_service import AuthService
 from app.services.customer_auth_service import CustomerAuthService
@@ -181,10 +182,10 @@ async def test_refresh_token_check_constraint(db_session):
         user_id=None,
         customer_id=None,
         token_hash=uuid.uuid4().hex,
-        expires_at=uuid.uuid4().hex[:10],
+        expires_at=datetime.utcnow(),
     )
     db_session.add(invalid_token1)
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError):
         await db_session.commit()
     await db_session.rollback()
 
@@ -259,5 +260,3 @@ async def test_customer_login_malformed_payload_validation(async_client):
         json={"email": "sarah.jenkins@example.com", "password": ""},
     )
     assert res4.status_code == 422
-
-

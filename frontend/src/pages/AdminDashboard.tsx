@@ -318,7 +318,11 @@ export const AdminDashboardPage: React.FC = () => {
               />
             </div>
 
-            {(startDate || endDate || filterStatus !== 'all' || minRiskFilter !== 'all' || debouncedSearch) && (
+            {(startDate ||
+              endDate ||
+              filterStatus !== 'all' ||
+              minRiskFilter !== 'all' ||
+              debouncedSearch) && (
               <button
                 onClick={handleClearFilters}
                 className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition"
@@ -790,7 +794,8 @@ export const AdminDashboardPage: React.FC = () => {
                         <span>AI Provider Outage Fallback</span>
                       </div>
                       <p className="text-amber-800 text-xs">
-                        Automated AI decision service was unavailable during evaluation. The claim was safely persisted and escalated for supervisor review.
+                        Automated AI decision service was unavailable during evaluation. The claim
+                        was safely persisted and escalated for supervisor review.
                       </p>
                     </div>
                   )}
@@ -827,16 +832,25 @@ export const AdminDashboardPage: React.FC = () => {
                               >
                                 <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                                 <div className="font-semibold text-[11px]">
-                                  {flag === 'velocity_limit_exceeded' && 'Velocity Spike: 3+ claims within rolling 24 hours'}
-                                  {flag === 'high_value_cluster' && 'High Value Cluster: Item > $200 or 7-day sum > $500'}
-                                  {flag === 'conflicting_claim_detected' && 'Conflicting Claim: Active or approved claim on item within 30 days'}
-                                  {!['velocity_limit_exceeded', 'high_value_cluster', 'conflicting_claim_detected'].includes(flag) && flag}
+                                  {flag === 'velocity_limit_exceeded' &&
+                                    'Velocity Spike: 3+ claims within rolling 24 hours'}
+                                  {flag === 'high_value_cluster' &&
+                                    'High Value Cluster: Item > $200 or 7-day sum > $500'}
+                                  {flag === 'conflicting_claim_detected' &&
+                                    'Conflicting Claim: Active or approved claim on item within 30 days'}
+                                  {![
+                                    'velocity_limit_exceeded',
+                                    'high_value_cluster',
+                                    'conflicting_claim_detected',
+                                  ].includes(flag) && flag}
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-emerald-700 font-medium">Clean • No anomalies detected</span>
+                          <span className="text-emerald-700 font-medium">
+                            Clean • No anomalies detected
+                          </span>
                         )}
                       </div>
                     </div>

@@ -54,8 +54,15 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const isLoading = isAdminLoading || isCustomerLoading;
-  const isActive = (path: string) => location?.pathname === path;
-  const isStaffActive = (path: string) => location?.pathname === path || location?.pathname.startsWith(`${path}/`);
+  const isCustomerPortalActive =
+    location?.pathname === '/portal' && !location.search.includes('tab=claims');
+  const isMyClaimsActive =
+    location?.pathname === '/portal' && location.search.includes('tab=claims');
+  const isAdminDashboardActive =
+    location?.pathname === '/admin' ||
+    (Boolean(location?.pathname.startsWith('/admin/')) &&
+      !location?.pathname.startsWith('/admin/settings'));
+  const isAiSettingsActive = location?.pathname === '/admin/settings';
 
   const handleAdminLogout = async () => {
     if (!navigate) {
@@ -80,7 +87,7 @@ export const Navbar: React.FC = () => {
           <Link
             to="/portal"
             className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive('/portal')
+              isCustomerPortalActive
                 ? 'bg-emerald-50 text-emerald-700 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
@@ -91,7 +98,7 @@ export const Navbar: React.FC = () => {
           <Link
             to="/portal?tab=claims"
             className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-              location?.pathname === '/portal' && location.search.includes('tab=claims')
+              isMyClaimsActive
                 ? 'bg-emerald-50 text-emerald-700 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
@@ -107,7 +114,7 @@ export const Navbar: React.FC = () => {
           <Link
             to="/admin"
             className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isStaffActive('/admin')
+              isAdminDashboardActive
                 ? 'bg-emerald-50 text-emerald-700 font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
@@ -120,7 +127,7 @@ export const Navbar: React.FC = () => {
             <Link
               to="/admin/settings"
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/admin/settings')
+                isAiSettingsActive
                   ? 'bg-emerald-50 text-emerald-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
@@ -131,36 +138,35 @@ export const Navbar: React.FC = () => {
           )}
         </>
       )}
-
-      {!isCustomerAuthed && !isAdminAuthed && (
-        <div className="flex items-center space-x-1.5">
-          <Link
-            to="/login"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold shadow-sm transition-colors"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Customer Login</span>
-          </Link>
-          <Link
-            to="/admin/login"
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 text-xs font-medium transition-colors"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Staff Login</span>
-          </Link>
-        </div>
-      )}
     </nav>
   );
 
   const mobileNav = (
-    <nav className={`${mobileNavOpen ? 'block' : 'hidden'} md:hidden border-t border-slate-200 bg-white px-4 py-3`}>
+    <nav
+      className={`${mobileNavOpen ? 'block' : 'hidden'} md:hidden border-t border-slate-200 bg-white px-4 py-3`}
+    >
       {isCustomerAuthed && customer && (
         <div className="space-y-2">
-          <Link to="/portal" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+          <Link
+            to="/portal"
+            onClick={() => setMobileNavOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isCustomerPortalActive
+                ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
             Customer Portal
           </Link>
-          <Link to="/portal?tab=claims" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+          <Link
+            to="/portal?tab=claims"
+            onClick={() => setMobileNavOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isMyClaimsActive
+                ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
             My Claims
           </Link>
         </div>
@@ -168,11 +174,27 @@ export const Navbar: React.FC = () => {
 
       {isAdminAuthed && user && (
         <div className="space-y-2 mt-2 pt-2 border-t border-slate-200">
-          <Link to="/admin" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+          <Link
+            to="/admin"
+            onClick={() => setMobileNavOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isAdminDashboardActive
+                ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
             Admin Dashboard
           </Link>
           {user.role === 'admin' && (
-            <Link to="/admin/settings" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+            <Link
+              to="/admin/settings"
+              onClick={() => setMobileNavOpen(false)}
+              className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isAiSettingsActive
+                  ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                  : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
               AI Settings
             </Link>
           )}
@@ -181,10 +203,18 @@ export const Navbar: React.FC = () => {
 
       {!isCustomerAuthed && !isAdminAuthed && (
         <div className="space-y-2">
-          <Link to="/login" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+          <Link
+            to="/login"
+            onClick={() => setMobileNavOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
             Customer Login
           </Link>
-          <Link to="/admin/login" onClick={() => setMobileNavOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+          <Link
+            to="/admin/login"
+            onClick={() => setMobileNavOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
             Staff Login
           </Link>
         </div>
@@ -215,7 +245,9 @@ export const Navbar: React.FC = () => {
                 {isCustomerAuthed && customer && (
                   <div className="hidden md:flex items-center space-x-2">
                     <div className="flex flex-col items-end">
-                      <span className="text-xs font-medium text-slate-800 leading-tight">{customer.name}</span>
+                      <span className="text-xs font-medium text-slate-800 leading-tight">
+                        {customer.name}
+                      </span>
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Customer
                       </span>
@@ -234,7 +266,9 @@ export const Navbar: React.FC = () => {
                 {isAdminAuthed && user && (
                   <div className="hidden md:flex items-center space-x-2">
                     <div className="flex flex-col items-end">
-                      <span className="text-xs font-medium text-slate-800 leading-tight">{user.name}</span>
+                      <span className="text-xs font-medium text-slate-800 leading-tight">
+                        {user.name}
+                      </span>
                       <span
                         className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                           user.role === 'admin'

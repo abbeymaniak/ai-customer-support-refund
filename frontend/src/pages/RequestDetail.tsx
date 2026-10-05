@@ -194,7 +194,11 @@ export const RequestDetailPage: React.FC = () => {
           </div>
           <p className="text-slate-800 text-xs mt-1">
             Automated AI decision service was unavailable during evaluation (
-            <span className="font-mono">{String(req.error_context.error_type || 'AIProviderError')}</span>). The customer's claim was safely accepted and escalated to the supervisor review queue.
+            <span className="font-mono">
+              {String(req.error_context.error_type || 'AIProviderError')}
+            </span>
+            ). The customer's claim was safely accepted and escalated to the supervisor review
+            queue.
           </p>
         </div>
       )}
@@ -372,9 +376,15 @@ export const RequestDetailPage: React.FC = () => {
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                       <div className="font-semibold text-[11px]">
                         {flag === 'velocity_limit_exceeded' && 'Velocity Spike: 3+ claims in 24h'}
-                        {flag === 'high_value_cluster' && 'High Value Cluster: Item > $200 or 7d sum > $500'}
-                        {flag === 'conflicting_claim_detected' && 'Conflicting Claim: Duplicate item claim in 30d'}
-                        {!['velocity_limit_exceeded', 'high_value_cluster', 'conflicting_claim_detected'].includes(flag) && flag}
+                        {flag === 'high_value_cluster' &&
+                          'High Value Cluster: Item > $200 or 7d sum > $500'}
+                        {flag === 'conflicting_claim_detected' &&
+                          'Conflicting Claim: Duplicate item claim in 30d'}
+                        {![
+                          'velocity_limit_exceeded',
+                          'high_value_cluster',
+                          'conflicting_claim_detected',
+                        ].includes(flag) && flag}
                       </div>
                     </div>
                   ))}

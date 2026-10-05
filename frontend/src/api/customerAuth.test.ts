@@ -38,9 +38,7 @@ describe('customerAuthApi', () => {
   });
 
   it('login throws error when credentials are rejected (covers: AC-3)', async () => {
-    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(
-      new Error('Invalid email or password')
-    );
+    vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('Invalid email or password'));
 
     await expect(
       customerAuthApi.login({ email: 'sarah.jenkins@example.com', password: 'wrong' })
@@ -66,9 +64,7 @@ describe('customerAuthApi', () => {
       new Error('Invalid or expired refresh token')
     );
 
-    await expect(customerAuthApi.refresh()).rejects.toThrow(
-      'Invalid or expired refresh token'
-    );
+    await expect(customerAuthApi.refresh()).rejects.toThrow('Invalid or expired refresh token');
   });
 
   it('logout terminates active customer session (covers: AC-3, AC-7)', async () => {
