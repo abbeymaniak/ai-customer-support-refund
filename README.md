@@ -1,5 +1,7 @@
 # AI Customer Support Refund System
 
+![AI Customer Support Refund System](docs/assets/cover.png)
+
 An automated, intelligent e-commerce customer support refund decision engine built with **FastAPI**, **React 18 / Vite / TypeScript**, **PostgreSQL 16**, and **LiteLLM**.
 
 The platform evaluates incoming customer refund claims against machine readable policy documents, customer transaction histories, and real time fraud risk metrics, producing defensible decisions: **Approved**, **Denied**, or **Escalated**.
